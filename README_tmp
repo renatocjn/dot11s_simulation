@@ -1,0 +1,11 @@
+Folder of the simulations of mesh topologies using the ns3 simulatior
+these files must be in a folder named 'dot11s-simulations' in the the folder 'ns-3.xx' of the ns3 simulator
+
+folders:
+	results - folder containing results files of the ns3 simulations, these results are pcap traces, meshpointer xml files and flow-monitor xml files
+
+	scripts - folder containing scripts to run the simulations and organize the results
+
+	src - contains the ns3 simulations source code in C
+
+the 'special-wscript' file have to overwrite the original wscript file of the ns-3.xx
