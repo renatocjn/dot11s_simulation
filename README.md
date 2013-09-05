@@ -2,9 +2,12 @@ dot11s_simulation
 =================
 
 These files must be inside a folder named 'dot11s_simulation' inside the folder named 'ns-3.xx' of the ns3 simulator folder <br>
-*This was tested with ns3 v3.17* <br><br>
+*This was tested with ns3 v3.17* <br>
 
-the file 'special-wscript' must overwrite the wscript file of the folder 'ns-3.xx', it will make the waf builder search these folders
+The file 'special-wscript' must overwrite the wscript file of the folder 'ns-3.xx',<br>it will make the waf builder search these folders
+```
+cp special-wscript ../wscript
+```
 
 ###folders
 
