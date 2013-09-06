@@ -9,9 +9,9 @@
 NumOfRuns=10 #number of runs for the simulation
 
 ReturnDir=$(pwd) #directory to return to
-if [ $(basename $ReturnDir) != 'dot11s_simulations' ]; then #just making sure we are on the right folder
-	echo "Please run this from the 'scratch' folder"
-	echo "do something like '\$./scripts/$0' in the 'dot11s_simulations' folder"
+if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we are on the right folder
+	echo "Please run this from the 'dot11s_simulation' folder"
+	echo "do something like '\$./scripts/$0' in the 'dot11s_simulation' folder"
 	exit 1
 fi
 cd ..
