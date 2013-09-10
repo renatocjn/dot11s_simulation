@@ -2,3 +2,4 @@ results/*
 !results/.gitfile
 !.gitignore
 .directory
+src/local_tests/*
