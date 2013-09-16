@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 # Script for running and organizing results of simulations
 # Author: Renato Caminha J. Neto
 # started: Tuesday, September 03, 2013
 # usage: $main.sh <sim_code> <params_1>...<params_N>
 # <sim_code> is the path (without the type extention) to the source code of the ns3 simulation and the
-# <params_i> are the parameters for the simulation and are defined in the simulation code
+# <params_i> are the parameters for the simulation and are defined in the simulation source code
 
 NumOfRuns=10 #number of runs for the simulation
 
@@ -16,18 +16,33 @@ if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we 
 fi
 cd ..
 
+name=''
+for i in $@; do
+	name=$name$i
+done
+
 #script variables
-ResultDir=$ReturnDir/results/$(date +results_%s)	#root folder path of results
-# WafScript=$ReturnDir/waf							#main waf script path to run simulation
+ResultDir=$ReturnDir/results/results_$name			#root folder path of results
 SimScript=$1; shift									#simulation code path without the .cc extention
 
+if [ -d $ResultDir ]; then
+	read -p 'It seams this test has already been run, do you want to run it anyway? [y/N]' answer
+	answer=${answer:-n}
+	if [ y = $answer ]; then
+		rm -Rf $ResultDir
+	else
+		echo 'okay, exiting...'
+		exit
+	fi
+fi
+
 mkdir -p $ResultDir
-echo "script: $SimScript, params: $@" > $ResultDir/command.txt #backup of the simulation params for later consulting
+
 for i in $(seq $NumOfRuns); do
-	echo "running test number $i of $NumOfRuns"
+	echo -e "\033[33;40mRunning test number $i of $NumOfRuns\033[0m" #these numbers are the color marking for yellow(33) letters and black(40) background
 	mkdir -p $ResultDir/test_$i/pcaps
 	mkdir $ResultDir/test_$i/MeshHelperXmls #folders for organization of results
-	./waf --run "$SimScript --pcap=1 $@" 2> /dev/null
+	./waf --run "$SimScript --pcap=1 $@"
 	mv *.pcap $ResultDir/test_$i/pcaps
 	mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
 	mv FlowMonitorResults.xml $ResultDir/test_$i
