@@ -39,7 +39,7 @@ fi
 mkdir -p $ResultDir
 
 for i in $(seq $NumOfRuns); do
-	echo -e "\033[33;40mRunning test number $i of $NumOfRuns\033[0m" #these numbers are the color marking for yellow(33) letters and black(40) background
+	echo -e "\033[36;40mRunning test number $i of $NumOfRuns\033[0m" #these numbers are the color marking for cyan(36) letters and black(40) background
 	mkdir -p $ResultDir/test_$i/pcaps
 	mkdir $ResultDir/test_$i/MeshHelperXmls #folders for organization of results
 	./waf --run "$SimScript --pcap=1 $@"

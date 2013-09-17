@@ -19,7 +19,7 @@ if os.path.isdir('graphics'):
 		os.mkdir('graphics')
 	else:
 		print 'exiting...'
-		return 0
+		sys.exit()
 
 def statistics(vals):
 	vals = numpy.array(vals)
@@ -31,5 +31,22 @@ id_from_mac = lambda address: int(filter(lambda x: x!=':', address), 16)
 
 _, directories, _ = os.walk(os.curdir).next()
 numerical_sort(directories)
+os.chdir(os.path.join(random.choice(directories),'MeshHelperXmls'))
 
-os.chdir(os.join(random.choice(directories),'MeshHelperXmls'))
+link_graph = nx.DiGraph()
+
+report_files = glob('mp-report-*.xml')
+numerical_sort(report_files)
+for report_file in report_files:
+	r = etree.XML(open(report_file,'r').read())
+	emp = r.find('PeerManagementProtocol')
+	curr_id = id_from_mac(emp.find('PeerManagementProtocolMac').get('address'))
+	link_graph.add_node(curr_id)
+	for link in emp.findall('PeerLink'):
+		peerId = id_from_mac(link.get('peerMeshPointAddress'))
+		m = link.get('metric')
+		link_graph.add_edge(curr_id, peerId, metric = m)
+
+os.chdir(os.path.join(os.pardir, os.pardir))
+nx.write_dot(link_graph, 'peer_link_graph.dot')
+

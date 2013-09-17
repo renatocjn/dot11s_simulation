@@ -115,7 +115,7 @@ private:
 MeshTest::MeshTest () :
 m_xSize (3),
 m_ySize (3),
-m_step (43.125),
+m_step (100), //43.125
 m_randomStart (0.3),
 m_totalTime (100.0),
 m_packetInterval (0.1),
@@ -135,7 +135,7 @@ MeshTest::Configure (int argc, char *argv[])
 	CommandLine cmd;
 	cmd.AddValue ("x-size", "Number of nodes in a row grid. [6]", m_xSize);
 	cmd.AddValue ("y-size", "Number of rows in a grid. [6]", m_ySize);
-	cmd.AddValue ("step",   "Size of edge in our grid, meters. [43.125 m]", m_step);
+	cmd.AddValue ("step",   "Size of edge in our grid, meters. [100 m]", m_step);
 	/*
 	* As soon as starting node means that it sends a beacon,
 	* simultaneous start is not good.
@@ -222,7 +222,6 @@ MeshTest::InstallInternetStack ()
 void
 MeshTest::InstallApplication ()
 {
-	std::cout << "client: " << m_clientId << std::endl << "server: " << m_serverId << std::endl;
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
 	serverApps.Start (Seconds (0.0));
