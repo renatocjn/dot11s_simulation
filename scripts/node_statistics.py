@@ -6,6 +6,7 @@ from glob import glob
 import os, sys, numpy, random, networkx as nx
 from scikits.bootstrap import ci
 from shutil import rmtree
+import pylab as pl
 
 if len(sys.argv) != 1 and isdir(sys.argv[1]):
 	os.chdir(sys.argv[1])
@@ -24,7 +25,8 @@ os.mkdir('graphics')
 
 def statistics(vals):
 	vals = numpy.array(vals)
-	return {'mean':vals.mean(), 'std':vals.std(), 'ci':list(ci( vals, numpy.average ))}
+	#return {'mean':vals.mean(), 'std':vals.std(), 'ci':list(ci( vals, numpy.average ))}
+	return vals.mean()
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
@@ -97,6 +99,16 @@ for folder in directories:
 		values[Id]['taxaEntrega'].append(rxBytes/txBytes)
 	os.chdir(join(os.pardir, os.pardir))
 
+x = numpy.arange(node_number)
+labels = [ 'node_' + str(i) for i in x ]
+os.chdir('graphics')
+for k in ['txOpen', 'rxOpen', 'txConfirm', 'rxConfirm', 'rxClose', 'txClose', 'rxPerr', 'txPerr', 'rxPrep', 'txPreq', 'rxPrep', 'txPrep']:
+	pl.clf()
+	y = [ statistics(values[i][k]) for i in range(node_number) ]
+	print '%s:' % k, y
+	pl.xticks(x+0.4, labels)
+	pl.bar(x, y)
+	pl.savefig('%s_graph.png' % k)
 
 
 print 'A folder containing the graphics of the results of the simulation was created in the %s folder' % sys.argv[1]
