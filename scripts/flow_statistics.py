@@ -3,11 +3,11 @@
 from lxml import etree
 from glob import glob
 import os, sys, numpy
-from scikits.bootstrap import ci
+#from scikits.bootstrap import ci
 
 def statistics(vals):
 	vals = numpy.array(vals)
-	return {'mean':vals.mean(), 'std':vals.std(), 'ci':list(ci( vals, numpy.average ))}
+	return vals.mean(), vals.std()
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
@@ -19,12 +19,14 @@ else:
 	sys.exit(1)
 
 _, directories, _ = os.walk(os.curdir).next()
+directories.remove('graphics')
 numerical_sort(directories)
+
 
 txBytes = list()
 rxBytes = list()
-txPacket = list()
-rxPacket = list()
+txPackets = list()
+rxPackets = list()
 timeFirstTxPacket = list()
 timeFirstRxPacket = list()
 timeLastTxPacket = list()
@@ -48,8 +50,8 @@ for d in directories:
 		flowcount+=1
 		rxBytes.append(clean_result(flow.get('rxBytes')))
 		txBytes.append(clean_result(flow.get('txBytes')))
-		rxPacket.append(clean_result(flow.get('rxPacket')))
-		txPacket.append(clean_result(flow.get('txPacket')))
+		rxPackets.append(clean_result(flow.get('rxPackets')))
+		txPackets.append(clean_result(flow.get('txPackets')))
 		timeLastRxPacket.append(clean_result(flow.get('timeLastRxPacket')))
 		timeLastTxPacket.append(clean_result(flow.get('timeLastTxPacket')))
 		timeFirstRxPacket.append(clean_result(flow.get('timeFirstRxPacket')))
@@ -61,18 +63,15 @@ for d in directories:
 		timesForwarded.append(clean_result(flow.get('timesForwarded')))
 	os.chdir(os.pardir)
 
-deliveryRate = map( lambda x: x[0]/x[1], zip(rxPacket, txPacket))
+deliveryRate = map( lambda x: x[0]/x[1], zip(rxPackets, txPackets))
 delay = map ( lambda x: (x[0]-x[1])*10**(-9), zip(timeLastRxPacket, timeFirstTxPacket))
 
 #print timesForwarded
-print 'receaved:', rxBytes
-print 'transmited:', txBytes
-print 'rate:', deliveryRate
 stats = {}
 stats['txBytes'] = statistics(txBytes)
 stats['rxBytes'] = statistics(rxBytes)
-stats['txPacket'] = statistics(txPacket)
-stats['rxPacket'] = statistics(rxPacket)
+stats['txPackets'] = statistics(txPackets)
+stats['rxPackets'] = statistics(rxPackets)
 stats['timeFirstTxPacket'] = statistics(timeFirstTxPacket)
 stats['timeFirstRxPacket'] = statistics(timeFirstRxPacket)
 stats['timeLastTxPacket'] = statistics(timeLastTxPacket)
@@ -85,15 +84,14 @@ stats['lastDelay'] = statistics(lastDelay)
 stats['lostPackets'] = statistics(lostPackets)
 #stats['timesForwarded'] = statistics(timesForwarded)
 
-if len(sys.argv) == 1:
+if len(sys.argv) == 2:
 	for i in stats.keys():
-		print i+':', stats[i]
-	return 0
+		print i+':', '\n\tmedia:', stats[i][0], '\n\tdesvio padrao:', stats[i][1]
+	sys.exit()
 
 for i in sys.argv[2:]:
 	try:
-		print i+':', stats[i]
+		print i+':', '\n\tmedia:', stats[i][0], '\n\tdesvio padrao:', stats[i][1]
 	except KeyError:
 		print i, 'nao encontrado'
-		sys.exit(1)
 

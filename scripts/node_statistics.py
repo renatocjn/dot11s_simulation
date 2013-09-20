@@ -4,7 +4,7 @@ from os.path import isdir, join
 from lxml import etree
 from glob import glob
 import os, sys, numpy, random, networkx as nx
-from scikits.bootstrap import ci
+#from scikits.bootstrap import ci
 from shutil import rmtree
 import pylab as pl
 
@@ -25,8 +25,9 @@ os.mkdir('graphics')
 
 def statistics(vals):
 	vals = numpy.array(vals)
-	#return {'mean':vals.mean(), 'std':vals.std(), 'ci':list(ci( vals, numpy.average ))}
-	return vals.mean()
+	#try: tmp = list(ci( vals, numpy.average ))
+	#except BaseException: tmp = None
+	return vals.mean(), vals.std()#, tmp
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
@@ -38,7 +39,7 @@ numerical_sort(directories)
 
 
 '''
-	Writing the graph of links among the mesh points.
+	Writing the graph of links among the mesh points assuming that the links are constant among the runs
 '''
 os.chdir(join(random.choice(directories),'MeshHelperXmls'))
 link_graph = nx.DiGraph()
@@ -59,25 +60,15 @@ nx.write_dot(link_graph, join('graphics','peer_link_graph.dot'))
 
 
 '''
-	Writing graph for various values in the xmls
+	recovering values from the nodes xml files
 '''
 node_number = len(glob(join(directories[0], 'MeshHelperXmls', '*')))
 values = [ {} for i in range(node_number) ]
+all_statistics_keys = {'txOpen', 'rxOpen', 'txConfirm', 'rxConfirm', 'rxClose', 'txClose', 'rxPerr', 'txPerr', 'rxPrep', 'txPrep', 'rxPreq', 'txPreq', 'dropped', 'taxaEntrega', 'droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr'}
+
 for i in values:
-	i['taxaEntrega'] = list()
-	i['txOpen'] = list()
-	i['txConfirm'] = list()
-	i['txClose'] = list()
-	i['rxOpen'] = list()
-	i['rxConfirm'] = list()
-	i['rxClose'] = list()
-	i['dropped'] = list()
-	i['txPreq'] = list()
-	i['txPrep'] = list()
-	i['txPerr'] = list()
-	i['rxPreq'] = list()
-	i['rxPrep'] = list()
-	i['rxPerr'] = list()
+	for k in all_statistics_keys:
+		i[k] = list()
 
 for folder in directories:
 	os.chdir( join(folder, 'MeshHelperXmls') )
@@ -93,21 +84,32 @@ for folder in directories:
 		for key in ['txOpen', 'txConfirm', 'txClose', 'rxOpen', 'rxConfirm', 'rxClose', 'dropped']:
 			values[Id][key].append( clean_result( n.get(key) ) )
 
+		n = xmlRoot.find('Hwmp').find('Statistics')
+		for key in ['droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr']:
+			values[Id][key].append( clean_result( n.get(key) ) )
+
 		n = xmlRoot.find('Interface').find('Statistics')
 		txBytes = clean_result( n.get('txBytes') )
 		rxBytes = clean_result( n.get('rxBytes') )
 		values[Id]['taxaEntrega'].append(rxBytes/txBytes)
 	os.chdir(join(os.pardir, os.pardir))
 
-x = numpy.arange(node_number)
-labels = [ 'node_' + str(i) for i in x ]
+
+
+'''
+	Drawing graphs for the recovered values
+'''
+width = 0.5
+x = numpy.arange(node_number) + width/2
+labels = [ 'node_' + str(int(i-width)) for i in x ]
 os.chdir('graphics')
-for k in ['txOpen', 'rxOpen', 'txConfirm', 'rxConfirm', 'rxClose', 'txClose', 'rxPerr', 'txPerr', 'rxPrep', 'txPreq', 'rxPrep', 'txPrep']:
+for k in all_statistics_keys:
 	pl.clf()
-	y = [ statistics(values[i][k]) for i in range(node_number) ]
-	print '%s:' % k, y
-	pl.xticks(x+0.4, labels)
-	pl.bar(x, y)
+	y, yerr = zip(*[ statistics(values[i][k]) for i in range(node_number) ])
+	pl.xlim(0, x[-1]+width*2)
+	pl.xticks(x + width/2, labels)
+	pl.title(k)
+	pl.bar(x, y, yerr=yerr, width=width)
 	pl.savefig('%s_graph.png' % k)
 
 
