@@ -74,7 +74,7 @@ nx.write_dot(link_graph, join('graphics','peer_link_graph.dot'))
 '''
 node_number = len(glob(join(directories[0], 'MeshHelperXmls', '*')))
 values = [ {} for i in range(node_number) ]
-all_statistics_keys = {'txOpen', 'rxOpen', 'txConfirm', 'rxConfirm', 'rxClose', 'txClose', 'rxPerr', 'txPerr', 'rxPrep', 'txPrep', 'rxPreq', 'txPreq', 'dropped', 'taxaEntrega', 'droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr'}
+all_statistics_keys = {'txOpen', 'rxOpen', 'txConfirm', 'rxConfirm', 'rxClose', 'txClose', 'rxPerr', 'txPerr', 'rxPrep', 'txPrep', 'rxPreq', 'txPreq', 'dropped', 'droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr', 'txBytes', 'rxBytes'}
 
 for i in values:
 	for k in all_statistics_keys:
@@ -100,9 +100,8 @@ for folder in directories:
 			values[Id][key].append( clean_result( n.get(key) ) )
 
 		n = xmlRoot.find('Interface').find('Statistics')
-		txBytes = clean_result( n.get('txBytes') )
-		rxBytes = clean_result( n.get('rxBytes') )
-		values[Id]['taxaEntrega'].append(rxBytes/txBytes)
+		for key in ['txBytes', 'rxBytes']:
+			values[Id][key].append( clean_result( n.get(key) ) )
 	os.chdir(join(os.pardir, os.pardir))
 
 
@@ -118,7 +117,7 @@ for k in all_statistics_keys:
 	pl.clf()
 	y, std = zip(*[ statistics(values[i][k]) for i in range(node_number) ])
 	pl.xlim(0, x[-1]+width*2)
-	#pl.ylim(ymin=0)
+	pl.ylim(ymin=0, ymax=max(y)+0.1)
 	pl.xticks(x + width, labels)
 	pl.title(k)
 	pl.bar(x + width/2.0, y, yerr=std, width=width)
