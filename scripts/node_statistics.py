@@ -75,7 +75,7 @@ for folder in directories:
 	for nodeXml in glob('mp-report-*.xml'):
 		xmlRoot = etree.XML( open(nodeXml,'r').read() )
 		Id = id_from_mac( xmlRoot.get('address') )
-
+		print folder
 		n = xmlRoot.find('Hwmp').find('HwmpProtocolMac').find('Statistics')
 		for key in ['rxPerr', 'rxPrep', 'rxPreq', 'txPerr', 'txPrep', 'txPreq']:
 			values[Id][key].append( clean_result( n.get(key) ) )
@@ -100,16 +100,17 @@ for folder in directories:
 	Drawing graphs for the recovered values
 '''
 width = 0.5
-x = numpy.arange(node_number) + width/2
-labels = [ 'node_' + str(int(i-width)) for i in x ]
+x = numpy.arange(node_number)
+labels = [ 'node_' + str(int(i)) for i in x ]
 os.chdir('graphics')
 for k in all_statistics_keys:
 	pl.clf()
-	y, yerr = zip(*[ statistics(values[i][k]) for i in range(node_number) ])
+	y, std = zip(*[ statistics(values[i][k]) for i in range(node_number) ])
 	pl.xlim(0, x[-1]+width*2)
-	pl.xticks(x + width/2, labels)
+	pl.ylim(ymin=0)
+	pl.xticks(x + width, labels)
 	pl.title(k)
-	pl.bar(x, y, yerr=yerr, width=width)
+	pl.bar(x + width/2.0, y, yerr=std, width=width)
 	pl.savefig('%s_graph.png' % k)
 
 

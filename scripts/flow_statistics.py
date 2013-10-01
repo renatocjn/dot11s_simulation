@@ -22,7 +22,7 @@ _, directories, _ = os.walk(os.curdir).next()
 directories.remove('graphics')
 numerical_sort(directories)
 
-
+numFlows = None
 txBytes = list()
 rxBytes = list()
 txPackets = list()
@@ -46,7 +46,9 @@ for d in directories:
 	xmlRoot = etree.XML(xmlString)
 	FlowStats = xmlRoot.find('FlowStats')
 	flowcount=0
-	for flow in FlowStats.iterfind('Flow'): # get flow simulation values
+	all_flows = FlowStats.findall('Flow')
+	numFlows = len(all_flows)
+	for flow in all_flows: # get flow simulation values
 		flowcount+=1
 		rxBytes.append(clean_result(flow.get('rxBytes')))
 		txBytes.append(clean_result(flow.get('txBytes')))
@@ -85,8 +87,13 @@ stats['lostPackets'] = statistics(lostPackets)
 #stats['timesForwarded'] = statistics(timesForwarded)
 
 if len(sys.argv) == 2:
+	output = open('flow-statistics.txt','w')
+	lines = ['numberOfFlows=%d\n' % numFlows]
 	for i in stats.keys():
-		print i+':', '\n\tmedia:', stats[i][0], '\n\tdesvio padrao:', stats[i][1]
+		lines.append( '%s-mean=%f\n' % (i, stats[i][0]) )
+		lines.append( '%s-std=%f\n' % (i, stats[i][1]) )
+	output.writelines(lines)
+	output.close()
 	sys.exit()
 
 for i in sys.argv[2:]:

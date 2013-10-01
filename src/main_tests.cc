@@ -92,6 +92,7 @@ private:
 	std::string m_root;
 	unsigned int m_serverId;
 	unsigned int m_clientId;
+	double m_waitTime;
 	Ptr<FlowMonitor> m_flowMonitor;
 
 	/// List of network nodes
@@ -126,7 +127,8 @@ m_pcap (false),
 m_stack ("ns3::Dot11sStack"),
 m_root ("ff:ff:ff:ff:ff:ff"),
 m_serverId (0),
-m_clientId(0)
+m_clientId(0),
+m_waitTime(5.0)
 {
 }
 void
@@ -149,11 +151,11 @@ MeshTest::Configure (int argc, char *argv[])
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 	cmd.AddValue ("stack",  "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
 	cmd.AddValue ("root", "Mac address of root mesh point in HWMP", m_root);
+	m_clientId = m_xSize * m_ySize - 1; //valor default
 	cmd.AddValue ("client", "Id of the client of the UDP ping [default is the node with the largest Id]", m_clientId);
 	cmd.AddValue ("server", "Id of the server of the UDP ping [0]", m_serverId);
-
+	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
 	cmd.Parse (argc, argv);
-	m_clientId = m_xSize * m_ySize - 1;
 	NS_LOG_DEBUG ("Grid:" << m_xSize << "*" << m_ySize);
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
 }
@@ -224,15 +226,15 @@ MeshTest::InstallApplication ()
 {
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
-	serverApps.Start (Seconds (0.0));
+	serverApps.Start (Seconds (m_waitTime));
 	serverApps.Stop (Seconds (m_totalTime));
 	UdpEchoClientHelper echoClient (interfaces.GetAddress (m_serverId), 9);
-	echoClient.SetAttribute ("MaxPackets", UintegerValue ((uint32_t)(m_totalTime*(1/m_packetInterval))));
+	echoClient.SetAttribute ("MaxPackets", UintegerValue ((uint32_t)((m_totalTime-m_waitTime)*(1/m_packetInterval))));
 	echoClient.SetAttribute ("Interval", TimeValue (Seconds (m_packetInterval)));
 	echoClient.SetAttribute ("PacketSize", UintegerValue (m_packetSize));
 	ApplicationContainer clientApps = echoClient.Install (nodes.Get (m_clientId));
-	clientApps.Start (Seconds (5.0));
-	clientApps.Stop (Seconds (m_totalTime-5));
+	clientApps.Start (Seconds (m_waitTime));
+	clientApps.Stop (Seconds (m_totalTime));
 }
 int
 MeshTest::Run ()

@@ -26,7 +26,7 @@ ResultDir=$ReturnDir/results/results_$name			#root folder path of results
 SimScript=$1; shift									#simulation code path without the .cc extention
 
 if [ -d $ResultDir ]; then
-	read -p 'It seams this test has already been run, do you want to run it anyway? [y/N]' answer
+	read -p 'It seems this test has already been run, do you want to run it anyway? [y/N]' answer
 	answer=${answer:-n}
 	if [ y = $answer ]; then
 		rm -Rf $ResultDir
@@ -38,14 +38,17 @@ fi
 
 mkdir -p $ResultDir
 
+./waf build >/dev/null 2> /dev/null
 for i in $(seq $NumOfRuns); do
-	echo -e "\033[36;40mRunning test number $i of $NumOfRuns\033[0m" #these numbers are the color marking for cyan(36) letters and black(40) background
-	mkdir -p $ResultDir/test_$i/pcaps
-	mkdir $ResultDir/test_$i/MeshHelperXmls #folders for organization of results
-	./waf --run "$SimScript --pcap=1 $@"
+	echo "Running test number $i of $NumOfRuns"
+	mkdir -p $ResultDir/test_$i/pcaps		#folders for organization of results
+	mkdir $ResultDir/test_$i/MeshHelperXmls
+	echo "./build/dot11s_simulation/*$SimScript* --pcap=1 $@" | ./waf shell 2> /dev/null
 	mv *.pcap $ResultDir/test_$i/pcaps
 	mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
 	mv FlowMonitorResults.xml $ResultDir/test_$i
 done
 
 cd $ReturnDir
+./scripts/node_statistics.py $ResultDir
+./scripts/flow_statistics.py $ResultDir
