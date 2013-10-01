@@ -31,7 +31,7 @@ def statistics(vals):
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
-id_from_mac = lambda address: int(filter(lambda x: x!=':', address), 16) - 1
+int_from_mac = lambda address: int(filter(lambda x: x!=':', address), 16) - 1
 
 _, directories, _ = os.walk(os.curdir).next()
 directories.remove('graphics')
@@ -42,18 +42,28 @@ numerical_sort(directories)
 	Writing the graph of links among the mesh points assuming that the links are constant among the runs
 '''
 os.chdir(join(random.choice(directories),'MeshHelperXmls'))
-link_graph = nx.DiGraph()
+link_graph = nx.MultiGraph()
 report_files = glob('mp-report-*.xml')
 numerical_sort(report_files)
 for report_file in report_files:
 	r = etree.XML(open(report_file,'r').read())
+	channels = {}
+	interfaces = r.findall('Interface')
+	aux = len(interfaces)
+	for i in interfaces:
+		channels[i.get('Address')] = i.get('Channel')
 	emp = r.find('PeerManagementProtocol')
-	curr_id = id_from_mac(emp.find('PeerManagementProtocolMac').get('address'))
+	curr_id = int_from_mac(emp.find('PeerManagementProtocolMac').get('address'))/aux
 	link_graph.add_node(curr_id)
 	for link in emp.findall('PeerLink'):
-		peerId = id_from_mac(link.get('peerMeshPointAddress'))
-		m = link.get('metric')
-		link_graph.add_edge(curr_id, peerId, label = m)
+		peerId = int_from_mac(link.get('peerMeshPointAddress'))/aux
+		m = channels[link.get('localAddress')]
+		flag = False
+		if link_graph.get_edge_data(curr_id, peerId) is not None:
+			for d in link_graph.get_edge_data(curr_id, peerId).values():
+				if d['label'] == m: flag = True
+		if not flag:
+			link_graph.add_edge(curr_id, peerId, label = m)
 
 os.chdir(join(os.pardir, os.pardir))
 nx.write_dot(link_graph, join('graphics','peer_link_graph.dot'))
@@ -74,8 +84,9 @@ for folder in directories:
 	os.chdir( join(folder, 'MeshHelperXmls') )
 	for nodeXml in glob('mp-report-*.xml'):
 		xmlRoot = etree.XML( open(nodeXml,'r').read() )
-		Id = id_from_mac( xmlRoot.get('address') )
-		print folder
+		Id = int_from_mac( xmlRoot.get('address') )
+		Id /= len(xmlRoot.findall('Interface'))
+
 		n = xmlRoot.find('Hwmp').find('HwmpProtocolMac').find('Statistics')
 		for key in ['rxPerr', 'rxPrep', 'rxPreq', 'txPerr', 'txPrep', 'txPreq']:
 			values[Id][key].append( clean_result( n.get(key) ) )
