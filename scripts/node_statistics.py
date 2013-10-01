@@ -118,7 +118,7 @@ for k in all_statistics_keys:
 	pl.clf()
 	y, std = zip(*[ statistics(values[i][k]) for i in range(node_number) ])
 	pl.xlim(0, x[-1]+width*2)
-	pl.ylim(ymin=0)
+	#pl.ylim(ymin=0)
 	pl.xticks(x + width, labels)
 	pl.title(k)
 	pl.bar(x + width/2.0, y, yerr=std, width=width)
