@@ -38,12 +38,12 @@ fi
 
 mkdir -p $ResultDir
 
-./waf build >/dev/null 2> /dev/null
+./waf build >/dev/null
 for i in $(seq $NumOfRuns); do
 	echo "Running test number $i of $NumOfRuns"
 	mkdir -p $ResultDir/test_$i/pcaps		#folders for organization of results
 	mkdir $ResultDir/test_$i/MeshHelperXmls
-	echo "./build/dot11s_simulation/*$SimScript* --pcap=1 $@" | ./waf shell 2> /dev/null
+	echo "./build/dot11s_simulation/*$SimScript* --pcap=1 $@" | ./waf shell
 	mv *.pcap $ResultDir/test_$i/pcaps
 	mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
 	mv FlowMonitorResults.xml $ResultDir/test_$i

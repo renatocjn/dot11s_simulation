@@ -108,6 +108,8 @@ MeshTest::Configure (int argc, char *argv[])
   cmd.Parse (argc, argv);
   NS_LOG_DEBUG ("Grid:" << m_xSize << "*" << m_ySize);
   NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
+
+  std::cout << "size " << m_xSize << 'x' << m_ySize << std::endl;
 }
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //

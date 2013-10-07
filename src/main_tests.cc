@@ -135,8 +135,8 @@ void
 MeshTest::Configure (int argc, char *argv[])
 {
 	CommandLine cmd;
-	cmd.AddValue ("x-size", "Number of nodes in a row grid. [6]", m_xSize);
-	cmd.AddValue ("y-size", "Number of rows in a grid. [6]", m_ySize);
+	cmd.AddValue ("x-size", "Number of nodes in a row grid. [3]", m_xSize);
+	cmd.AddValue ("y-size", "Number of rows in a grid. [3]", m_ySize);
 	cmd.AddValue ("step",   "Size of edge in our grid, meters. [100 m]", m_step);
 	/*
 	* As soon as starting node means that it sends a beacon,
@@ -151,7 +151,6 @@ MeshTest::Configure (int argc, char *argv[])
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 	cmd.AddValue ("stack",  "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
 	cmd.AddValue ("root", "Mac address of root mesh point in HWMP", m_root);
-	m_clientId = m_xSize * m_ySize - 1; //valor default
 	cmd.AddValue ("client", "Id of the client of the UDP ping [default is the node with the largest Id]", m_clientId);
 	cmd.AddValue ("server", "Id of the server of the UDP ping [0]", m_serverId);
 	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
@@ -224,6 +223,7 @@ MeshTest::InstallInternetStack ()
 void
 MeshTest::InstallApplication ()
 {
+	std::cout << "Cliente: " << m_clientId << ", Server: " << m_serverId << std::endl;
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
 	serverApps.Start (Seconds (m_waitTime));
@@ -239,10 +239,10 @@ MeshTest::InstallApplication ()
 int
 MeshTest::Run ()
 {
+	m_clientId = m_xSize * m_ySize - 1; //valor default
 	CreateNodes ();
 	InstallInternetStack ();
 	InstallApplication ();
-
 	// Flow monitor initialization
 	FlowMonitorHelper fmh;
 	fmh.InstallAll();
@@ -252,7 +252,6 @@ MeshTest::Run ()
 	Simulator::Stop (Seconds (m_totalTime));
 	Simulator::Run ();
 	Simulator::Destroy ();
-
 	m_flowMonitor->CheckForLostPackets();
 // 	std::cout << "Flows: " << m_flowMonitor->GetFlowStats().size() << EOL; //test to check connection, if this prints 2 it means that the node sent and receaved
 	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
