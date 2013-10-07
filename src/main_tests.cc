@@ -223,7 +223,6 @@ MeshTest::InstallInternetStack ()
 void
 MeshTest::InstallApplication ()
 {
-	std::cout << "Cliente: " << m_clientId << ", Server: " << m_serverId << std::endl;
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
 	serverApps.Start (Seconds (m_waitTime));
