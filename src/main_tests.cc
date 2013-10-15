@@ -121,7 +121,7 @@ m_randomStart (0.3),
 m_totalTime (100.0),
 m_packetInterval (0.1),
 m_packetSize (1024),
-m_nIfaces (1),
+m_nIfaces (2),
 m_chan (true),
 m_pcap (false),
 m_stack ("ns3::Dot11sStack"),
@@ -146,7 +146,7 @@ MeshTest::Configure (int argc, char *argv[])
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
-	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [1]", m_nIfaces);
+	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [2]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [0]", m_chan);
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 	cmd.AddValue ("stack",  "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
