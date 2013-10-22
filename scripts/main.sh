@@ -6,7 +6,7 @@
 # <sim_code> is the path (without the type extention) to the source code of the ns3 simulation and the
 # <params_i> are the parameters for the simulation and are defined in the simulation source code
 
-NumOfRuns=10 #number of runs for the simulation
+NumOfRuns=1 #number of runs for the simulation
 
 ReturnDir=$(pwd) #directory to return to
 if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we are on the right folder

@@ -4,7 +4,7 @@
 	Usage:
 		./make2dGraph.py <simulation> <Variating parameter> <list of values for variating parameter>
 
-	This script runs simulations and show
+	This script runs simulations and shows a 2d graph of the results
 	the horizontal axis of the graph is the <Variating parameter> and it must be a parameter of the simulations
 	the vertical axis is a metric of what was run and must be in the file 'flow-statistics.txt'
 '''
@@ -18,10 +18,11 @@ from numpy import array
 
 if len(argv) < 4:
 	print 'Usage:\n\t./make2dGraph.py <simulation> <Variating parameter> <list of at least 2 values for \'variating parameter\'>'
+	exit(1)
 
 simulation = argv[1]
 parameter = argv[2]
-paramenterValues = argv[3:]
+parameterValues = argv[3:]
 
 '''
 	Running the simulations
@@ -29,9 +30,12 @@ paramenterValues = argv[3:]
 mainScriptPath = join(curdir, 'scripts', 'main.sh')
 if not isfile(mainScriptPath):
 	chdir(pardir)
+if not isfile(mainScriptPath):
+	print 'Simulation Script not found'
+	exit(1)
 
 directories = dict()
-for val in paramenterValues:
+for val in parameterValues:
 	directoriesBeforeRun = set(glob(join('results','*')))
 	print 'Running simulation %s with parameter %s equal to %s' % (simulation, parameter, val)
 	call( [ mainScriptPath, simulation, '--%s=%s' % (parameter, val) ] )
@@ -49,7 +53,7 @@ for m in wantedMetrics:
 '''
 Acquiring the results of the simulations
 '''
-for param_val in paramenterValues:
+for param_val in parameterValues:
 	chdir(directories[param_val]) # move to directory of the run with the param equal to current param val
 	flow_statistics = open('flow-statistics.txt', 'r').read().split() # get list of lines in the statistics file
 	for m in wantedMetrics:

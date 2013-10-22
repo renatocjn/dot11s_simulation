@@ -8,7 +8,7 @@ import os, sys, numpy, random, networkx as nx
 from shutil import rmtree
 import pylab as pl
 
-if len(sys.argv) != 1 and isdir(sys.argv[1]):
+if len(sys.argv) == 2 and isdir(sys.argv[1]): #minimum parameter checking
 	os.chdir(sys.argv[1])
 else:
 	print 'please pass the directory with the results as the first parameter'
@@ -20,42 +20,49 @@ if isdir('graphics'):
 		rmtree ('graphics')
 	else:
 		print 'exiting...'
-		sys.exit()
+		sys.exit(1)
 os.mkdir('graphics')
 
 def statistics(vals):
 	vals = numpy.array(vals)
-	#try: tmp = list(ci( vals, numpy.average ))
+	#try: tmp = list(ci( vals, numpy.\average ))
 	#except BaseException: tmp = None
 	return vals.mean(), vals.std()#, tmp
 
-clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
-numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
-int_from_mac = lambda address: int(filter(lambda x: x!=':', address), 16) - 1
+clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) ) #returns a float out of a string
+numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list strings with non digits
+int_from_mac = lambda address: int(filter(lambda x: x!=':', address), 16) - 1 #transforms a mac address to a integer by assuming it is a hex value
 
-_, directories, _ = os.walk(os.curdir).next()
-directories.remove('graphics')
+_, directories, _ = os.walk(os.curdir).next() #get direcories of the current folder
+directories.remove('graphics') #remove the recently created 'graphics' folder
 numerical_sort(directories)
 
 
 '''
-	Writing the graph of links among the mesh points assuming that the links are constant among the runs
+	Acquiring the graph of links among the mesh points assuming that the links are constant among the runs
 '''
-os.chdir(join(random.choice(directories),'MeshHelperXmls'))
-link_graph = nx.MultiGraph()
+randomRun = random.choice(directories)
+randomRunXmlDirectoryPath = join(randomRun,'MeshHelperXmls')
+os.chdir(randomRunXmlDirectoryPath)
+link_graph = nx.MultiGraph() #the mesh points can have multiple links among mesh points
 report_files = glob('mp-report-*.xml')
 numerical_sort(report_files)
 for report_file in report_files:
-	r = etree.XML(open(report_file,'r').read())
-	channels = {}
-	interfaces = r.findall('Interface')
+	xmlAsString = open(report_file,'r').read()
+	xmlRootElement = etree.XML(xmlAsString)
+
+	#this section is meant to populate the mapping interface/assigned channel for this mesh point
+	interfaces = xmlRootElement.findall('Interface')
 	aux = len(interfaces)
+	channels = dict() # this dict is meant to map a mesh points interface to its assigned channel
 	for i in interfaces:
 		channels[i.get('Address')] = i.get('Channel')
-	emp = r.find('PeerManagementProtocol')
-	curr_id = int_from_mac(emp.find('PeerManagementProtocolMac').get('address'))/aux
+
+	PeerManagementProtocolElement = xmlRootElement.find('PeerManagementProtocol')
+	currMeshPointAddress = PeerManagementProtocolElement.find('PeerManagementProtocolMac').get('address')
+	curr_id = int_from_mac(currMeshPointAddress)/aux #this aux is a fix for the multiple interfaces addressing problem
 	link_graph.add_node(curr_id)
-	for link in emp.findall('PeerLink'):
+	for link in PeerManagementProtocolElement.findall('PeerLink'):
 		peerId = int_from_mac(link.get('peerMeshPointAddress'))/aux
 		m = channels[link.get('localAddress')]
 		flag = False
@@ -83,23 +90,23 @@ for i in values:
 for folder in directories:
 	os.chdir( join(folder, 'MeshHelperXmls') )
 	for nodeXml in glob('mp-report-*.xml'):
-		xmlRoot = etree.XML( open(nodeXml,'r').read() )
-		Id = int_from_mac( xmlRoot.get('address') )
-		Id /= len(xmlRoot.findall('Interface'))
+		xmlRootElement = etree.XML( open(nodeXml,'r').read() )
+		Id = int_from_mac( xmlRootElement.get('address') )
+		Id /= len(xmlRootElement.findall('Interface'))
 
-		n = xmlRoot.find('Hwmp').find('HwmpProtocolMac').find('Statistics')
+		n = xmlRootElement.find('Hwmp').find('HwmpProtocolMac').find('Statistics')
 		for key in ['rxPerr', 'rxPrep', 'rxPreq', 'txPerr', 'txPrep', 'txPreq']:
 			values[Id][key].append( clean_result( n.get(key) ) )
 
-		n = xmlRoot.find('PeerManagementProtocol').find('PeerManagementProtocolMac').find('Statistics')
+		n = xmlRootElement.find('PeerManagementProtocol').find('PeerManagementProtocolMac').find('Statistics')
 		for key in ['txOpen', 'txConfirm', 'txClose', 'rxOpen', 'rxConfirm', 'rxClose', 'dropped']:
 			values[Id][key].append( clean_result( n.get(key) ) )
 
-		n = xmlRoot.find('Hwmp').find('Statistics')
+		n = xmlRootElement.find('Hwmp').find('Statistics')
 		for key in ['droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr']:
 			values[Id][key].append( clean_result( n.get(key) ) )
 
-		n = xmlRoot.find('Interface').find('Statistics')
+		n = xmlRootElement.find('Interface').find('Statistics')
 		for key in ['txBytes', 'rxBytes']:
 			values[Id][key].append( clean_result( n.get(key) ) )
 	os.chdir(join(os.pardir, os.pardir))
