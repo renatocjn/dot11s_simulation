@@ -69,7 +69,7 @@ for param_val in parameterValues:
 for m in wantedMetrics:
 	pl.clf()
 	t = list(metrics[m].viewitems())
-	comparer = lambda x, y: int(x[0])-int(y[0])
+	comparer = lambda x, y: cmp(float(x[0])-float(y[0]))
 	t.sort(comparer)
 	x, z = zip(*t)
 	y, std = zip(*z)
