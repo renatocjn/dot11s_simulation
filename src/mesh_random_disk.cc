@@ -36,6 +36,8 @@ public:
 	void Configure (int argc, char ** argv);
 	/// Run test
 	int Run ();
+
+	void printTime();
 private:
 	unsigned int m_radius;
 	unsigned int m_run;
@@ -77,7 +79,7 @@ m_radius (20),
 m_run (0),
 m_numberNodes (50),
 m_nFlows (1),
-m_randomStart (0.3),
+m_randomStart (0.1),
 m_totalTime (100.0),
 m_packetInterval (0.1),
 m_packetSize (1024),
@@ -90,6 +92,11 @@ m_serverId (0),
 m_waitTime(5.0)
 {
 }
+
+void MeshTest::printTime() {
+	std::cout << Simulator::Now();
+}
+
 void
 MeshTest::Configure (int argc, char *argv[])
 {
@@ -102,7 +109,7 @@ MeshTest::Configure (int argc, char *argv[])
 	* As soon as starting node means that it sends a beacon,
 	* simultaneous start is not good.
 	*/
-	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.3 s]", m_randomStart);
+	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
 	cmd.AddValue ("run",  "run counter for randomness porpoises.", m_run);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
@@ -182,22 +189,22 @@ MeshTest::CreateNodes ()
 	if (m_pcap)
 		wifiPhy.EnablePcapAll (std::string ("mp-"));
 
-	Ptr<Node> node_p;
-	for (uint32_t i = 0; i < nodes.GetN (); i++)
-	{
-		node_p = nodes.Get (i);
-		std::cout << "NodeId: " << node_p->GetId () << EOL;
-
-		// creates a new one, does not get the installed one.
-		Ptr<MobilityModel> mobility = node_p->GetObject <MobilityModel> ();
-		Vector pos = mobility->GetPosition ();
-// 		std::cout << "  Mobility Model: " << mobility->GetInstanceTypeId () << EOL;
-		std::cout << "\tPosition (x,y): " << pos.x << "\t" << pos.y << EOL;
-
-		for(uint32_t i=1; i < node_p->GetNDevices(); i++) {
-			std::cout << "\tdevice " << i << ", MAC address: " << node_p->GetDevice(i)->GetAddress() << EOL;
-		}
-	}
+// 	Ptr<Node> node_p;
+// 	for (uint32_t i = 0; i < nodes.GetN (); i++)
+// 	{
+// 		node_p = nodes.Get (i);
+// 		std::cout << "NodeId: " << node_p->GetId () << EOL;
+//
+// 		// creates a new one, does not get the installed one.
+// 		Ptr<MobilityModel> mobility = node_p->GetObject <MobilityModel> ();
+// 		Vector pos = mobility->GetPosition ();
+// // 		std::cout << "  Mobility Model: " << mobility->GetInstanceTypeId () << EOL;
+// 		std::cout << "\tPosition (x,y): " << pos.x << "\t" << pos.y << EOL;
+//
+// 		for(uint32_t i=1; i < node_p->GetNDevices(); i++) {
+// 			std::cout << "\tdevice " << i << ", MAC address: " << node_p->GetDevice(i)->GetAddress() << EOL;
+// 		}
+// 	}
 }
 void
 MeshTest::InstallInternetStack ()
@@ -211,7 +218,7 @@ MeshTest::InstallInternetStack ()
 void
 MeshTest::InstallApplication ()
 {
-	double totalTransmittingTime = m_totalTime - 1.0;
+	double totalTransmittingTime = m_totalTime;
 
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
@@ -223,7 +230,6 @@ MeshTest::InstallApplication ()
 	echoClient.SetAttribute ("Interval", TimeValue (Seconds (m_packetInterval)));
 	echoClient.SetAttribute ("PacketSize", UintegerValue (m_packetSize));
 
-	Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable> ();
 	std::set<int> clientIds;
 	do {
 		int n = (rand() + 1) % m_numberNodes; //The number has to be different from zero, positive and smaller than the number of nodes
@@ -231,7 +237,7 @@ MeshTest::InstallApplication ()
 	} while (clientIds.size() < m_nFlows); //Create 'm_nFlows' different clients
 
 	NodeContainer clients;
-	for (std::set<int>::iterator it = clientIds.begin(); it != clientIds.end(); ++it) {
+	for (std::set<int>::iterator it = clientIds.begin(); it != clientIds.end(); it++) {
 		clients.Add(nodes.Get (*it));
 	}
 	ApplicationContainer clientApps = echoClient.Install (clients);
@@ -247,6 +253,7 @@ MeshTest::Run ()
 	InstallInternetStack ();
 	std::cout << "InstallApplication" << EOL;
 	InstallApplication ();
+
 	// Flow monitor initialization
 	std::cout << "FlowMonitor" << EOL;
 	FlowMonitorHelper fmh;
@@ -255,11 +262,14 @@ MeshTest::Run ()
 
 	std::cout << "Simulation Execution: " << m_totalTime << "s" << EOL; //TODO Descobrir porque isso esta demorando demais...
 	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
+	double step = m_totalTime/100.0;
+	for (double checkpoint = step; checkpoint <= m_totalTime; checkpoint+=step) {
+		Simulator::Schedule (Seconds (checkpoint), &MeshTest::printTime, this);
+	}
 	Simulator::Stop (Seconds (m_totalTime));
 	Simulator::Run ();
 	Simulator::Destroy ();
 // 	m_flowMonitor->CheckForLostPackets();
-// 	std::cout << "Flows: " << m_flowMonitor->GetFlowStats().size() << EOL; //test to check connection, if this prints 2 it means that the node sent and received
 // 	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
 	return 0;
 }
@@ -267,21 +277,21 @@ void
 MeshTest::Report ()
 {
 	std::cout << "Reporting" << EOL;
-// 	unsigned n (0);
-// 	for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n)
-// 	{
-// 		std::ostringstream os;
-// 		os << "mp-report-" << n << ".xml";
-// 		std::ofstream of;
-// 		of.open (os.str ().c_str ());
-// 		if (!of.is_open ())
-// 		{
-// 			std::cerr << "Error: Can't open file " << os.str () << "\n";
-// 			return;
-// 		}
-// 		mesh.Report (*i, of);
-// 		of.close ();
-// 	}
+	unsigned n (0);
+	for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n)
+	{
+		std::ostringstream os;
+		os << "mp-report-" << n << ".xml";
+		std::ofstream of;
+		of.open (os.str ().c_str ());
+		if (!of.is_open ())
+		{
+			std::cerr << "Error: Can't open file " << os.str () << "\n";
+			return;
+		}
+		mesh.Report (*i, of);
+		of.close ();
+	}
 }
 int
 main (int argc, char *argv[])

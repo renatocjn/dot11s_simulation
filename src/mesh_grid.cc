@@ -252,7 +252,6 @@ MeshTest::Run ()
 	Simulator::Run ();
 	Simulator::Destroy ();
 	m_flowMonitor->CheckForLostPackets();
-// 	std::cout << "Flows: " << m_flowMonitor->GetFlowStats().size() << EOL; //test to check connection, if this prints 2 it means that the node sent and receaved
 	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
 	return 0;
 }
