@@ -7,6 +7,7 @@
 # <params_i> are the parameters for the simulation and are defined in the simulation source code
 
 NumOfRuns=1 #number of runs for the simulation
+MeanOfNeighbors=3
 
 ReturnDir=$(pwd) #directory to return to
 if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we are on the right folder
@@ -39,12 +40,28 @@ fi
 mkdir -p $ResultDir
 
 ./waf build >/dev/null
-for i in $(seq $NumOfRuns); do
+i=1
+while [ $i -le $NumOfRuns ]; do
 	echo "Running test number $i of $NumOfRuns"
-	mkdir -p $ResultDir/test_$i/MeshHelperXmls
 	echo "./build/dot11s_simulation/*$SimScript* $@" | ./waf shell
-	mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
-	mv FlowMonitorResults.xml $ResultDir/test_$i
+
+	numOfLinks=$(cat mp-report-*|grep '<PeerLink'|wc -l)
+	numOfLinks=$(($numOfLinks/2))
+	nodeNumber=$(ls -1|grep mp-report|wc -l)
+	mean=$(($numOfLinks/$nodeNumber))
+	echo 'num of links: ' $numOfLinks
+	echo 'node number:' $nodeNumber
+	echo 'mean: ' $mean
+
+	if [ $mean -gt $MeanOfNeighbors ]; then
+		mkdir -p $ResultDir/test_$i/MeshHelperXmls
+		mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
+		mv FlowMonitorResults.xml $ResultDir/test_$i
+
+		i=$(($i+1))
+	else
+		echo 'Baixo numero de links, tentando novamente...'
+	fi
 done
 
 cd $ReturnDir
