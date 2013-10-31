@@ -75,9 +75,8 @@ private:
 	void Report ();
 };
 MeshTest::MeshTest () :
-m_radius (20),
-m_run (0),
-m_numberNodes (50),
+m_radius (100),
+m_numberNodes (10),
 m_nFlows (1),
 m_randomStart (0.1),
 m_totalTime (100.0),
@@ -94,7 +93,7 @@ m_waitTime(5.0)
 }
 
 void MeshTest::printTime() {
-	std::cout << Simulator::Now();
+	std::cout << Simulator::Now() << EOL;
 }
 
 void
@@ -110,7 +109,6 @@ MeshTest::Configure (int argc, char *argv[])
 	* simultaneous start is not good.
 	*/
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
-	cmd.AddValue ("run",  "run counter for randomness porpoises.", m_run);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
@@ -124,8 +122,6 @@ MeshTest::Configure (int argc, char *argv[])
 	NS_LOG_DEBUG ("Random Disk area with " << m_numberNodes << " nodes");
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
 	SeedManager::SetSeed(rand());
-
-	//TODO descobrir ID do servidor (m_serverId)
 }
 void
 MeshTest::CreateNodes ()
@@ -189,22 +185,28 @@ MeshTest::CreateNodes ()
 	if (m_pcap)
 		wifiPhy.EnablePcapAll (std::string ("mp-"));
 
-// 	Ptr<Node> node_p;
-// 	for (uint32_t i = 0; i < nodes.GetN (); i++)
-// 	{
-// 		node_p = nodes.Get (i);
+	Ptr<Node> node_p;
+	float sum = 0, cont=0;
+	for (uint32_t i = 0; i < nodes.GetN (); i++)
+	{
+		node_p = nodes.Get (i);
 // 		std::cout << "NodeId: " << node_p->GetId () << EOL;
-//
-// 		// creates a new one, does not get the installed one.
+
+		// creates a new one, does not get the installed one.
 // 		Ptr<MobilityModel> mobility = node_p->GetObject <MobilityModel> ();
 // 		Vector pos = mobility->GetPosition ();
-// // 		std::cout << "  Mobility Model: " << mobility->GetInstanceTypeId () << EOL;
+// 		std::cout << "  Mobility Model: " << mobility->GetInstanceTypeId () << EOL;
 // 		std::cout << "\tPosition (x,y): " << pos.x << "\t" << pos.y << EOL;
-//
-// 		for(uint32_t i=1; i < node_p->GetNDevices(); i++) {
+
+		for(uint32_t i=1; i < node_p->GetNDevices(); i++) {
 // 			std::cout << "\tdevice " << i << ", MAC address: " << node_p->GetDevice(i)->GetAddress() << EOL;
-// 		}
-// 	}
+// 			std::cout << "\t\tNumero de vizinhos: " << node_p->GetDevice(i)->GetChannel()->GetNDevices() << EOL;
+			sum += node_p->GetDevice(i)->GetChannel()->GetNDevices();
+			cont += 1.0;
+		}
+	}
+
+// 	std::cout << "\tdensidade: " << sum/cont << " vizinhos/dispositivos" << EOL;
 }
 void
 MeshTest::InstallInternetStack ()
@@ -241,42 +243,48 @@ MeshTest::InstallApplication ()
 		clients.Add(nodes.Get (*it));
 	}
 	ApplicationContainer clientApps = echoClient.Install (clients);
+
+// 	ApplicationContainer clientApps = echoClient.Install (nodes.Get(1));
+
 	clientApps.Start (Seconds (m_waitTime));
 	clientApps.Stop (Seconds (totalTransmittingTime));
 }
 int
 MeshTest::Run ()
 {
-	std::cout << "CreateNodes" << EOL;
+// 	std::cout << "CreateNodes" << EOL;
 	CreateNodes ();
-	std::cout << "InstallInternetStack" << EOL;
+// 	std::cout << "InstallInternetStack" << EOL;
 	InstallInternetStack ();
-	std::cout << "InstallApplication" << EOL;
+// 	std::cout << "InstallApplication" << EOL;
 	InstallApplication ();
 
 	// Flow monitor initialization
-	std::cout << "FlowMonitor" << EOL;
+// 	std::cout << "FlowMonitor" << EOL;
 	FlowMonitorHelper fmh;
 	fmh.InstallAll();
 	m_flowMonitor = fmh.GetMonitor();
 
-	std::cout << "Simulation Execution: " << m_totalTime << "s" << EOL; //TODO Descobrir porque isso esta demorando demais...
+// 	std::cout << "Simulation Execution: " << m_totalTime << "s" << EOL;
+// 	double step = m_totalTime/100.0;
+// 	for (double checkpoint = step; checkpoint <= m_totalTime; checkpoint+=step) {
+// 		Simulator::Schedule (Seconds (checkpoint), &MeshTest::printTime, this);
+// 	}
 	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
-	double step = m_totalTime/100.0;
-	for (double checkpoint = step; checkpoint <= m_totalTime; checkpoint+=step) {
-		Simulator::Schedule (Seconds (checkpoint), &MeshTest::printTime, this);
-	}
+
 	Simulator::Stop (Seconds (m_totalTime));
 	Simulator::Run ();
 	Simulator::Destroy ();
-// 	m_flowMonitor->CheckForLostPackets();
-// 	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
+
+	//FlowMonitor report
+	m_flowMonitor->CheckForLostPackets();
+	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
 	return 0;
 }
 void
 MeshTest::Report ()
 {
-	std::cout << "Reporting" << EOL;
+// 	std::cout << "Reporting" << EOL;
 	unsigned n (0);
 	for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n)
 	{
@@ -299,5 +307,5 @@ main (int argc, char *argv[])
 	MeshTest t;
 	t.Configure (argc, argv);
 	return t.Run ();
-	std::cout << "Ended" << EOL;
+// 	std::cout << "Ended" << EOL;
 }

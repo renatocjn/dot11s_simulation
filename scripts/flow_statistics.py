@@ -19,7 +19,6 @@ else:
 	sys.exit(1)
 
 _, directories, _ = os.walk(os.curdir).next()
-directories.remove('graphics')
 numerical_sort(directories)
 
 numFlows = None

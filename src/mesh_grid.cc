@@ -59,6 +59,8 @@
 
 #include "ns3/flow-monitor-module.h"
 
+#include <ctime>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -134,6 +136,7 @@ m_waitTime(5.0)
 void
 MeshTest::Configure (int argc, char *argv[])
 {
+	srand(time(NULL));
 	CommandLine cmd;
 	cmd.AddValue ("x-size", "Number of nodes in a row grid. [3]", m_xSize);
 	cmd.AddValue ("y-size", "Number of rows in a grid. [3]", m_ySize);
@@ -155,6 +158,9 @@ MeshTest::Configure (int argc, char *argv[])
 	cmd.AddValue ("server", "Id of the server of the UDP ping [0]", m_serverId);
 	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
 	cmd.Parse (argc, argv);
+
+	SeedManager::SetSeed(rand());
+
 	NS_LOG_DEBUG ("Grid:" << m_xSize << "*" << m_ySize);
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
 }

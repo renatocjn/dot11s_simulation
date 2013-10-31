@@ -10,7 +10,7 @@
 
 	the list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like '1 2 3' to make it easier for this script
 '''
-from os import curdir, pardir, chdir, walk
+from os import curdir, pardir, chdir, walk, mkdir
 from os.path import isdir, join, isfile
 from sys import argv, exit
 from subprocess import call
@@ -61,29 +61,40 @@ for parameter1val, parameter2val in combinations:
 '''
 	Preparing data structure of the results
 '''
-wantedMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay'] #these are the metrics that you want to make graphics of.
 results = dict()
-for m in wantedMetrics:
+
+wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay'] #these are the metrics that you want to make graphics of.
+for m in wantedFlowMetrics:
+	results[m] = list()
+
+wantedNodeMetrics = ['totalDropped', 'totalPerr', 'totalPreq', 'totalPrep'] #these are the metrics that you want to make graphics of.
+for m in wantedNodeMetrics:
 	results[m] = list()
 
 '''
 Acquiring the results of the simulations
 '''
-for m in wantedMetrics:
-	for p1Val, p2Val in combinations:
-		resultDir = directories[ (p1Val, p2Val) ]
-		chdir( resultDir)
-		flow_statistics = open('flow-statistics.txt', 'r').read().split() # get list of lines in the statistics file
-		for m in wantedMetrics:
-			metric = float([ line for line in flow_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-			results[m].append( (p1Val, p2Val, metric) )
-		chdir(pardir)
-		chdir(pardir)
+for p1Val, p2Val in combinations:
+	resultDir = directories[ (p1Val, p2Val) ]
+	chdir( resultDir )
+	flow_statistics = open('flow-statistics.txt', 'r').read().split() # get list of lines in the statistics file
+	node_statistics = open('node-statistics.txt', 'r').read().split() # get list of lines in the statistics file
+	for m in wantedFlowMetrics:
+		metric = float([ line for line in flow_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
+		results[m].append( (p1Val, p2Val, metric) )
+	for m in wantedNodeMetrics:
+		metric = float([ line for line in node_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
+		results[m].append( (p1Val, p2Val, metric) )
+	chdir(pardir)
+	chdir(pardir)
 
 '''
 	draw graphics of the simulations
 '''
-for m in wantedMetrics:
+plot_dir = '3dPlots_%s_vs_%s' % (parameter1, parameter2)
+if not isdir(plot_dir):
+	mkdir(plot_dir)
+for m in results.keys():
 	pl.clf()
 	fig = pl.figure()
 	ax = fig.add_subplot(111, projection='3d')
@@ -95,5 +106,5 @@ for m in wantedMetrics:
 	ax.set_ylabel(parameter2)
 	ax.set_zlabel(m)
 	ax.plot_trisurf(x, y, z)
-	pl.savefig('3d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2))
+	pl.savefig( join( plot_dir, '3d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2) ) )
 	#pl.show()
