@@ -6,8 +6,8 @@
 # <sim_code> is the path (without the type extention) to the source code of the ns3 simulation and the
 # <params_i> are the parameters for the simulation and are defined in the simulation source code
 
-NumOfRuns=1 #number of runs for the simulation
-MeanOfNeighbors=3
+NumOfRuns=10 #number of runs for the simulation
+minimumNumberOfNeighbors=3
 
 ReturnDir=$(pwd) #directory to return to
 if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we are on the right folder
@@ -45,22 +45,23 @@ while [ $i -le $NumOfRuns ]; do
 	echo "Running test number $i of $NumOfRuns"
 	echo "./build/dot11s_simulation/*$SimScript* $@" | ./waf shell
 
-	numOfLinks=$(cat mp-report-*|grep '<PeerLink'|wc -l)
-	numOfLinks=$(($numOfLinks/2))
-	nodeNumber=$(ls -1|grep mp-report|wc -l)
-	mean=$(($numOfLinks/$nodeNumber))
-	echo 'num of links: ' $numOfLinks
-	echo 'node number:' $nodeNumber
-	echo 'mean: ' $mean
+	notEnough=0 #false
+	for report in mp-report-*; do
+		numOfNeighbors=$(cat $report|grep 'peerMeshPointAddress'|sort|uniq|wc -l)
+		if [ $numOfNeighbors -lt $minimumNumberOfNeighbors ]; then
+			notEnough=1 #true
+			break
+		fi
+	done
 
-	if [ $mean -gt $MeanOfNeighbors ]; then
+	if [ $notEnough -eq 0 ]; then
 		mkdir -p $ResultDir/test_$i/MeshHelperXmls
 		mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
 		mv FlowMonitorResults.xml $ResultDir/test_$i
 
 		i=$(($i+1))
 	else
-		echo 'Baixo numero de links, tentando novamente...'
+		echo 'Some node didnt have enought PeerLinks, trying again...'
 	fi
 done
 

@@ -140,7 +140,7 @@ for folder in directories:
 		pl.clf()
 		y = [ per_run_values[i][k] for i in range(node_number) ]
 		pl.xlim(0, x[-1]+width*2)
-		pl.ylim(ymin=0, ymax=max(y)+0.1)
+		pl.ylim(ymin=0, ymax=(max(y)+0.1))
 		pl.xticks(x + width, labels)
 		pl.title(k)
 		pl.bar(x + width/2.0, y, width=width)

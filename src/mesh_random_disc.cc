@@ -37,7 +37,6 @@ public:
 	/// Run test
 	int Run ();
 
-	void printTime();
 private:
 	unsigned int m_radius;
 	unsigned int m_run;
@@ -86,14 +85,10 @@ m_nIfaces (2),
 m_chan (true),
 m_pcap (false),
 m_stack ("ns3::Dot11sStack"),
-m_root ("ff:ff:ff:ff:ff:ff"),
+m_root ("00:00:00:00:00:01"),
 m_serverId (0),
 m_waitTime(5.0)
 {
-}
-
-void MeshTest::printTime() {
-	std::cout << Simulator::Now() << EOL;
 }
 
 void
@@ -115,12 +110,13 @@ MeshTest::Configure (int argc, char *argv[])
 	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [2]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
-	cmd.AddValue ("stack",  "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
-	cmd.AddValue ("root", "Mac address of root mesh point in HWMP", m_root);
 	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
+
 	cmd.Parse (argc, argv);
+
 	NS_LOG_DEBUG ("Random Disk area with " << m_numberNodes << " nodes");
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
+
 	SeedManager::SetSeed(rand());
 }
 void
@@ -132,23 +128,9 @@ MeshTest::CreateNodes ()
 	YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
 	YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default ();
 	wifiPhy.SetChannel (wifiChannel.Create ());
-	/*
-	* Create mesh helper and set stack installer to it
-	* Stack installer creates all needed protocols and install them to
-	* mesh point device
-	*/
 
 	mesh = MeshHelper::Default ();
-	if (!Mac48Address (m_root.c_str ()).IsBroadcast ())
-	{
-		mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue (Mac48Address (m_root.c_str ())));
-	}
-	else
-	{
-		//If root is not set, we do not use "Root" attribute, because it
-		//is specified only for 11s
-		mesh.SetStackInstaller (m_stack);
-	}
+	mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue (Mac48Address (m_root.c_str ())));
 
 	if (m_chan)
 	{
@@ -184,29 +166,6 @@ MeshTest::CreateNodes ()
 
 	if (m_pcap)
 		wifiPhy.EnablePcapAll (std::string ("mp-"));
-
-	Ptr<Node> node_p;
-	float sum = 0, cont=0;
-	for (uint32_t i = 0; i < nodes.GetN (); i++)
-	{
-		node_p = nodes.Get (i);
-// 		std::cout << "NodeId: " << node_p->GetId () << EOL;
-
-		// creates a new one, does not get the installed one.
-// 		Ptr<MobilityModel> mobility = node_p->GetObject <MobilityModel> ();
-// 		Vector pos = mobility->GetPosition ();
-// 		std::cout << "  Mobility Model: " << mobility->GetInstanceTypeId () << EOL;
-// 		std::cout << "\tPosition (x,y): " << pos.x << "\t" << pos.y << EOL;
-
-		for(uint32_t i=1; i < node_p->GetNDevices(); i++) {
-// 			std::cout << "\tdevice " << i << ", MAC address: " << node_p->GetDevice(i)->GetAddress() << EOL;
-// 			std::cout << "\t\tNumero de vizinhos: " << node_p->GetDevice(i)->GetChannel()->GetNDevices() << EOL;
-			sum += node_p->GetDevice(i)->GetChannel()->GetNDevices();
-			cont += 1.0;
-		}
-	}
-
-// 	std::cout << "\tdensidade: " << sum/cont << " vizinhos/dispositivos" << EOL;
 }
 void
 MeshTest::InstallInternetStack ()
@@ -244,32 +203,21 @@ MeshTest::InstallApplication ()
 	}
 	ApplicationContainer clientApps = echoClient.Install (clients);
 
-// 	ApplicationContainer clientApps = echoClient.Install (nodes.Get(1));
-
 	clientApps.Start (Seconds (m_waitTime));
 	clientApps.Stop (Seconds (totalTransmittingTime));
 }
 int
 MeshTest::Run ()
 {
-// 	std::cout << "CreateNodes" << EOL;
 	CreateNodes ();
-// 	std::cout << "InstallInternetStack" << EOL;
 	InstallInternetStack ();
-// 	std::cout << "InstallApplication" << EOL;
 	InstallApplication ();
 
 	// Flow monitor initialization
-// 	std::cout << "FlowMonitor" << EOL;
 	FlowMonitorHelper fmh;
 	fmh.InstallAll();
 	m_flowMonitor = fmh.GetMonitor();
 
-// 	std::cout << "Simulation Execution: " << m_totalTime << "s" << EOL;
-// 	double step = m_totalTime/100.0;
-// 	for (double checkpoint = step; checkpoint <= m_totalTime; checkpoint+=step) {
-// 		Simulator::Schedule (Seconds (checkpoint), &MeshTest::printTime, this);
-// 	}
 	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
 
 	Simulator::Stop (Seconds (m_totalTime));
@@ -284,7 +232,6 @@ MeshTest::Run ()
 void
 MeshTest::Report ()
 {
-// 	std::cout << "Reporting" << EOL;
 	unsigned n (0);
 	for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n)
 	{
@@ -307,5 +254,4 @@ main (int argc, char *argv[])
 	MeshTest t;
 	t.Configure (argc, argv);
 	return t.Run ();
-// 	std::cout << "Ended" << EOL;
 }
