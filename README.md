@@ -21,3 +21,7 @@ it will make the waf builder search these folders
 *these are used to calculate statistics*
 - numpy
 - scikits.bootstrap
+- networkx
+- matplotlib
+- lxml
+
