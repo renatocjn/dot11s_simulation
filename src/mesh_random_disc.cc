@@ -74,7 +74,7 @@ private:
 	void Report ();
 };
 MeshTest::MeshTest () :
-m_radius (100),
+m_radius (120),
 m_numberNodes (10),
 m_nFlows (1),
 m_randomStart (0.1),

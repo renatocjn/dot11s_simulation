@@ -6,7 +6,7 @@
 # <sim_code> is the path (without the type extention) to the source code of the ns3 simulation and the
 # <params_i> are the parameters for the simulation and are defined in the simulation source code
 
-NumOfRuns=10 #number of runs for the simulation
+NumOfRuns=50 #number of runs for the simulation
 minimumNumberOfNeighbors=3
 
 ReturnDir=$(pwd) #directory to return to

@@ -48,7 +48,7 @@ for val in parameterValues:
 '''
 metrics = dict()
 
-wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay'] #these are the metrics that you want to make graphics of.
+wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay', 'throughput'] #these are the metrics that you want to make graphics of.
 for m in wantedFlowMetrics:
 	metrics[m] = dict()
 
@@ -77,7 +77,7 @@ for param_val in parameterValues:
 '''
 	draw graphics of the simulations
 '''
-plot_dir = '2dPlots_%s' % (parameter)
+plot_dir = '2d_%s_%s' % (simulation, parameter)
 if not isdir(plot_dir):
 	mkdir(plot_dir)
 for m in metrics.keys():

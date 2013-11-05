@@ -1,12 +1,12 @@
 #!/usr/bin/python
 '''
 	Usage:
-	./make2dGraph.py <simulation> <Variating parameter 1> <list of values for variating parameter 1> <Variating parameter 2> <list of values for variating parameter 2>
+	./make2dGraph.py <simulation> <Variating parameter1 for x axis> <list of values for variating parameter1> <Variating parameter2 for each plot> <list of values for variating parameter2>
 
-	This script runs simulations and shows a 3d graph os the results
-	the x-axis of the graph is the <Variating parameter 1> and it must be a parameter of the simulations
-	the y-axis of the graph is the <Variating parameter 2> and it must be a parameter of the simulations
-	the z-axis is a metric of what was run and must be in the file 'flow-statistics.txt'
+	This script runs simulations and shows a graph with muiltiple2D plot of the results.
+	The x-axis of the graphs is the <Variating parameter1> and it must be a parameter of the simulations.
+	Each plot is run with variating parameter2.
+	The z-axis is a metric of what was run and must be in the file 'flow-statistics.txt'.
 
 	the list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like '1 2 3' to make it easier for this script
 '''
@@ -22,7 +22,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from copy import deepcopy
 
 if len(argv) != 6:
-	print 'Usage:./make2dGraph.py <simulation> <Variating parameter 1> <list of values for variating parameter 1> <Variating parameter 2> <list of values for variating parameter 2>\n\tThe list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like \'1 2 3\' to make it easier for this script'
+	print 'Usage:./make2dGraph.py <simulation> <Variating parameter for x axis> <list of values for variating parameter> <Variating parameter for each plot> <list of values for variating parameter>\n\tThe list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like \'v1 v2 v3\' to make it easier for this script\n\t'
 	exit(1)
 
 simulation = argv[1]
@@ -46,7 +46,7 @@ mainScriptPath = join(curdir, 'scripts', 'main.sh')
 if not isfile(mainScriptPath):
 	chdir(pardir)
 if not isfile(mainScriptPath):
-	print 'Simulation Script not found'
+	print 'Main Script not found'
 	exit(1)
 
 combinations = [ (x, y) for x in parameter1Values for y in parameter2Values ]
@@ -80,31 +80,41 @@ for p1Val, p2Val in combinations:
 	flow_statistics = open('flow-statistics.txt', 'r').read().split() # get list of lines in the statistics file
 	node_statistics = open('node-statistics.txt', 'r').read().split() # get list of lines in the statistics file
 	for m in wantedFlowMetrics:
-		metric = float([ line for line in flow_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-		results[m].append( (p1Val, p2Val, metric) )
+		metric_mean = float([ line for line in flow_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
+		metric_std = float([ line for line in flow_statistics if m in line and 'std' in line ][0].split('=')[1]) #get line with the metric mean
+		results[m].append( (p1Val, p2Val, metric_mean, metric_std) )
 	for m in wantedNodeMetrics:
-		metric = float([ line for line in node_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-		results[m].append( (p1Val, p2Val, metric) )
+		metric_mean = float([ line for line in node_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
+		metric_std = float([ line for line in node_statistics if m in line and 'std' in line ][0].split('=')[1]) #get line with the metric mean
+		results[m].append( (p1Val, p2Val, metric_mean, metric_std) )
 	chdir(pardir)
 	chdir(pardir)
 
 '''
 	draw graphics of the simulations
 '''
-plot_dir = '3d_%s_%s_vs_%s' % (simulation, parameter1, parameter2)
+plot_dir = 'multiple2D_%s_%s_vs_%s' % (simulation, parameter1, parameter2)
 if not isdir(plot_dir):
 	mkdir(plot_dir)
 for m in results.keys():
 	pl.clf()
-	fig = pl.figure()
-	ax = fig.add_subplot(111, projection='3d')
-	x, y, z = zip(*results[m])
-	x = map(float, x)
-	y = map(float, y)
-	pl.title('%s vs %s vs %s' % (m, parameter1, parameter2))
-	ax.set_xlabel(parameter1)
-	ax.set_ylabel(parameter2)
-	ax.set_zlabel(m)
-	ax.plot_trisurf(x, y, z)
-	pl.savefig( join( plot_dir, '3d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2) ) )
+	pl.xlabel(parameter1)
+	pl.xticks(map(float,parameter1Values))
+	pl.ylabel(m)
+
+	maxy = -1
+	for plotv in parameter2Values:
+		values = filter(lambda x: x[1]==plotv, results[m])
+		x, _, y, std = zip(*values)
+
+		if maxy < max(y):
+			maxy = max(y)
+		x = map(float, x)
+
+		plot_label = '%s=%s'%(parameter2, plotv)
+		pl.errorbar(x, y, yerr=std, fmt='o-', label=plot_label)
+
+	pl.margins(0.05, 0.05)
+	pl.legend(loc='best')
+	pl.savefig( join( plot_dir, 'm2d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2) ) )
 	#pl.show()

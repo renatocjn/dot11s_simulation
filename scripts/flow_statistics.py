@@ -21,7 +21,6 @@ else:
 _, directories, _ = os.walk(os.curdir).next()
 numerical_sort(directories)
 
-numFlows = None
 txBytes = list()
 rxBytes = list()
 txPackets = list()
@@ -37,6 +36,7 @@ jitterSum = list()
 lastDelay = list()
 lostPackets = list()
 timesForwarded = list()
+throughput = list()
 node_stats = {}
 
 for d in directories:
@@ -44,11 +44,8 @@ for d in directories:
 	xmlString = open('FlowMonitorResults.xml', 'r').read()
 	xmlRoot = etree.XML(xmlString)
 	FlowStats = xmlRoot.find('FlowStats')
-	flowcount=0
 	all_flows = FlowStats.findall('Flow')
-	numFlows = len(all_flows)
 	for flow in all_flows: # get flow simulation values
-		flowcount+=1
 		rxBytes.append(clean_result(flow.get('rxBytes')))
 		txBytes.append(clean_result(flow.get('txBytes')))
 		rxPackets.append(clean_result(flow.get('rxPackets')))
@@ -65,9 +62,9 @@ for d in directories:
 	os.chdir(os.pardir)
 
 deliveryRate = map( lambda x: x[0]/x[1], zip(rxPackets, txPackets))
-delay = map ( lambda x: (x[0]-x[1])*10**(-9), zip(timeLastRxPacket, timeFirstTxPacket))
+delay = map( lambda x: (x[0]-x[1])*10**(-9), zip(timeLastRxPacket, timeFirstTxPacket) )
+throughput = map( lambda x: x[0]/x[1], zip(rxPackets, delay) )
 
-#print timesForwarded
 stats = {}
 stats['txBytes'] = statistics(txBytes)
 stats['rxBytes'] = statistics(rxBytes)
@@ -83,14 +80,16 @@ stats['delaySum'] = statistics(delaySum)
 stats['jitterSum'] = statistics(jitterSum)
 stats['lastDelay'] = statistics(lastDelay)
 stats['lostPackets'] = statistics(lostPackets)
+stats['throughput'] = statistics(throughput)
 #stats['timesForwarded'] = statistics(timesForwarded)
 
 if len(sys.argv) == 2:
 	output = open('flow-statistics.txt','w')
-	lines = ['numberOfFlows=%d\n' % numFlows]
-	for i in stats.keys():
-		lines.append( '%s-mean=%f\n' % (i, stats[i][0]) )
-		lines.append( '%s-std=%f\n' % (i, stats[i][1]) )
+	lines = list()
+	for metric in stats.keys():
+		mean, std = stats[metric]
+		lines.append( '%s-mean=%f\n' % (metric, mean) )
+		lines.append( '%s-std=%f\n' % (metric, std) )
 	output.writelines(lines)
 	output.close()
 	sys.exit()
