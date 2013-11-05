@@ -18,7 +18,6 @@ it will make the waf builder search these folders
 
 ###Python dependencies
 
-*these are used to calculate statistics*
 - numpy
 - scikits.bootstrap
 - networkx
