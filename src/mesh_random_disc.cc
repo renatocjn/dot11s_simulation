@@ -21,6 +21,7 @@
 #include <fstream>
 #include <set>
 #include <cmath>
+#include <list>
 
 #define EOL std::endl //EOL = End Of Line
 
@@ -30,16 +31,14 @@ NS_LOG_COMPONENT_DEFINE ("TestMeshScript");
 class MeshTest
 {
 public:
-	/// Init test
 	MeshTest ();
-	/// Configure test from command line arguments
+
 	void Configure (int argc, char ** argv);
-	/// Run test
+
 	int Run ();
 
 private:
 	unsigned int m_radius;
-	unsigned int m_run;
 	unsigned int m_numberNodes;
 	unsigned int m_nFlows;
 	double    m_randomStart;
@@ -51,66 +50,69 @@ private:
 	bool      m_pcap;
 	std::string m_stack;
 	std::string m_root;
+	std::string m_minimumNumberOfNeighbors;
 	unsigned int m_serverId;
 	double m_waitTime;
-	Ptr<FlowMonitor> m_flowMonitor;
 
-	/// List of network nodes
+	Ptr<FlowMonitor> m_flowMonitor;
 	NodeContainer nodes;
-	/// List of all mesh point devices
 	NetDeviceContainer meshDevices;
-	//Addresses of interfaces:
 	Ipv4InterfaceContainer interfaces;
-	// MeshHelper. Report is not static methods
 	MeshHelper mesh;
+	std::list<Vector> m_positions;
+
 private:
-	/// Create nodes and setup their mobility
 	void CreateNodes ();
-	/// Install internet m_stack on nodes
 	void InstallInternetStack ();
-	/// Install applications
 	void InstallApplication ();
-	/// Print mesh devices diagnostics
 	void Report ();
+	bool checkRunForConnections(); // calls external script to check latest run for the minimum number of connections
+	void setupRandomMobility();
+	void generateValidPositions();
+	void loadPositions();
 };
+
 MeshTest::MeshTest () :
-m_radius (120),
-m_numberNodes (10),
-m_nFlows (1),
-m_randomStart (0.1),
-m_totalTime (100.0),
-m_packetInterval (0.1),
-m_packetSize (1024),
-m_nIfaces (2),
-m_chan (true),
-m_pcap (false),
-m_stack ("ns3::Dot11sStack"),
-m_root ("00:00:00:00:00:01"),
-m_serverId (0),
-m_waitTime(5.0)
-{
+	m_radius (150),
+	m_numberNodes (50),
+	m_nFlows (1),
+	m_randomStart (0.1),
+	m_totalTime (100.0),
+	m_packetInterval (0.1),
+	m_packetSize (1024),
+	m_nIfaces (2),
+	m_chan (true),
+	m_pcap (false),
+	m_stack ("ns3::Dot11sStack"),
+	m_root ("00:00:00:00:00:01"),
+	m_minimumNumberOfNeighbors ("3"),
+	m_serverId (0),
+	m_waitTime(5.0) {}
+
+int main (int argc, char *argv[]) {
+	MeshTest t;
+	t.Configure (argc, argv);
+	return t.Run ();
 }
 
-void
-MeshTest::Configure (int argc, char *argv[])
-{
+void MeshTest::Configure (int argc, char *argv[]) {
 	srand(time(NULL));
 	CommandLine cmd;
-	cmd.AddValue ("radius", "Radius of the disk that the mesh points are located. [100 m]", m_radius);
+	cmd.AddValue ("radius", "Radius of the disk that the mesh points are located. [150 m]", m_radius);
 	cmd.AddValue ("number-of-nodes",  "Number of nodes in the simulation. [50]", m_numberNodes);
 	cmd.AddValue ("flows", "Number of flows in the simulation. [1]", m_nFlows);
-	/*
-	* As soon as starting node means that it sends a beacon,
-	* simultaneous start is not good.
-	*/
+	cmd.AddValue ("neighbors",  "Minimum number of neighbors per node. [3]", m_minimumNumberOfNeighbors);
+
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
+
 	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
 	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [2]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);
-	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
+
+	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 
 	cmd.Parse (argc, argv);
 
@@ -119,12 +121,33 @@ MeshTest::Configure (int argc, char *argv[])
 
 	SeedManager::SetSeed(rand());
 }
-void
-MeshTest::CreateNodes ()
-{
+
+int MeshTest::Run () {
+	generateValidPositions();
+
+	CreateNodes ();
+	loadPositions();
+	InstallInternetStack ();
+	InstallApplication ();
+
+	FlowMonitorHelper fmh;
+	fmh.InstallAll();
+	m_flowMonitor = fmh.GetMonitor();
+
+	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
+	Simulator::Stop (Seconds (m_totalTime));
+	Simulator::Run ();
+	Simulator::Destroy ();
+
+	m_flowMonitor->CheckForLostPackets();
+	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
+	return 0;
+}
+
+void MeshTest::CreateNodes () {
+	nodes = NodeContainer();
 	nodes.Create (m_numberNodes);
 
-	// Configure YansWifiChannel
 	YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
 	YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default ();
 	wifiPhy.SetChannel (wifiChannel.Create ());
@@ -142,12 +165,51 @@ MeshTest::CreateNodes ()
 	}
 
 	mesh.SetMacType ("RandomStart", TimeValue (Seconds (m_randomStart)));
-	// Set number of interfaces - default is single-interface mesh point
 	mesh.SetNumberOfInterfaces (m_nIfaces);
-	// Install protocols and return container if MeshPointDevices
 	meshDevices = mesh.Install (wifiPhy, nodes);
 
-	// Setup mobility - random disc topology
+	if (m_pcap)
+		wifiPhy.EnablePcapAll (std::string ("mp-"));
+}
+
+void MeshTest::InstallInternetStack () {
+	InternetStackHelper internetStack;
+	internetStack.Install (nodes);
+	Ipv4AddressHelper address;
+	address.SetBase ("10.1.1.0", "255.255.255.0");
+	interfaces = address.Assign (meshDevices);
+}
+
+void MeshTest::InstallApplication () {
+	double totalTransmittingTime = m_totalTime - 1.0;
+
+	UdpEchoServerHelper echoServer (9);
+	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
+	serverApps.Start (Seconds (m_waitTime));
+	serverApps.Stop (Seconds (totalTransmittingTime));
+
+	UdpEchoClientHelper echoClient (interfaces.GetAddress (m_serverId), 9);
+	echoClient.SetAttribute ("MaxPackets", UintegerValue ((uint32_t)((totalTransmittingTime-m_waitTime)*(1/m_packetInterval))));
+	echoClient.SetAttribute ("Interval", TimeValue (Seconds (m_packetInterval)));
+	echoClient.SetAttribute ("PacketSize", UintegerValue (m_packetSize));
+
+	std::set<int> clientIds;
+	do {
+		int n = (rand() + 1) % m_numberNodes;
+		clientIds.insert(n);
+	} while (clientIds.size() < m_nFlows);
+
+	NodeContainer clients;
+	for (std::set<int>::iterator it = clientIds.begin(); it != clientIds.end(); it++) {
+		clients.Add(nodes.Get (*it));
+	}
+
+	ApplicationContainer clientApps = echoClient.Install (clients);
+	clientApps.Start (Seconds (m_waitTime));
+	clientApps.Stop (Seconds (totalTransmittingTime));
+}
+
+void MeshTest::setupRandomMobility() {
 	MobilityHelper mobility;
 
 	Ptr<UniformRandomVariable> rho = CreateObject<UniformRandomVariable>();
@@ -163,75 +225,51 @@ MeshTest::CreateNodes ()
 
 	mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 	mobility.Install (nodes);
-
-	if (m_pcap)
-		wifiPhy.EnablePcapAll (std::string ("mp-"));
 }
-void
-MeshTest::InstallInternetStack ()
-{
-	InternetStackHelper internetStack;
-	internetStack.Install (nodes);
-	Ipv4AddressHelper address;
-	address.SetBase ("10.1.1.0", "255.255.255.0");
-	interfaces = address.Assign (meshDevices);
-}
-void
-MeshTest::InstallApplication ()
-{
-	double totalTransmittingTime = m_totalTime;
 
-	UdpEchoServerHelper echoServer (9);
-	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
-	serverApps.Start (Seconds (m_waitTime));
-	serverApps.Stop (Seconds (totalTransmittingTime));
-
-	UdpEchoClientHelper echoClient (interfaces.GetAddress (m_serverId), 9);
-	echoClient.SetAttribute ("MaxPackets", UintegerValue ((uint32_t)((totalTransmittingTime-m_waitTime)*(1/m_packetInterval))));
-	echoClient.SetAttribute ("Interval", TimeValue (Seconds (m_packetInterval)));
-	echoClient.SetAttribute ("PacketSize", UintegerValue (m_packetSize));
-
-	std::set<int> clientIds;
+void MeshTest::generateValidPositions() {
 	do {
-		int n = (rand() + 1) % m_numberNodes; //The number has to be different from zero, positive and smaller than the number of nodes
-		clientIds.insert(n);
-	} while (clientIds.size() < m_nFlows); //Create 'm_nFlows' different clients
+		CreateNodes ();
+		setupRandomMobility();
+		InstallInternetStack ();
 
-	NodeContainer clients;
-	for (std::set<int>::iterator it = clientIds.begin(); it != clientIds.end(); it++) {
-		clients.Add(nodes.Get (*it));
+		Simulator::Schedule (Seconds (m_waitTime), &MeshTest::Report, this);
+		Simulator::Stop (Seconds (m_waitTime));
+		Simulator::Run ();
+
+		int itWasValid = checkRunForConnections();
+		if ( itWasValid ) {
+			for (uint32_t i=0; i<nodes.GetN(); i++) {
+				ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
+				m_positions.push_back(p);
+			}
+		}
+		Simulator::Destroy ();
+	} while(m_positions.empty());
+}
+
+bool MeshTest::checkRunForConnections() {
+	/// Not the nicest way but couldn't find a better one ~RenatoCJN
+	std::string checkCommandLine = std::string("./check.sh ").append(m_minimumNumberOfNeighbors).append(" mp-report-*.xml");
+
+	return system( checkCommandLine.c_str() );
+}
+
+void MeshTest::loadPositions() {
+	MobilityHelper mobility;
+
+	Ptr<ListPositionAllocator> positionAllocator = CreateObject<ListPositionAllocator>();
+	for (std::list<Vector>::iterator p=m_positions.begin(); p != m_positions.end(); ++p) {
+		positionAllocator->Add(*p);
 	}
-	ApplicationContainer clientApps = echoClient.Install (clients);
 
-	clientApps.Start (Seconds (m_waitTime));
-	clientApps.Stop (Seconds (totalTransmittingTime));
+	mobility.SetPositionAllocator(positionAllocator);
+
+	mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+	mobility.Install (nodes);
 }
-int
-MeshTest::Run ()
-{
-	CreateNodes ();
-	InstallInternetStack ();
-	InstallApplication ();
 
-	// Flow monitor initialization
-	FlowMonitorHelper fmh;
-	fmh.InstallAll();
-	m_flowMonitor = fmh.GetMonitor();
-
-	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
-
-	Simulator::Stop (Seconds (m_totalTime));
-	Simulator::Run ();
-	Simulator::Destroy ();
-
-	//FlowMonitor report
-	m_flowMonitor->CheckForLostPackets();
-	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
-	return 0;
-}
-void
-MeshTest::Report ()
-{
+void MeshTest::Report () {
 	unsigned n (0);
 	for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n)
 	{
@@ -241,17 +279,10 @@ MeshTest::Report ()
 		of.open (os.str ().c_str ());
 		if (!of.is_open ())
 		{
-			std::cerr << "Error: Can't open file " << os.str () << "\n";
+			std::cerr << "Error: Can't open file " << os.str () << EOL;
 			return;
 		}
 		mesh.Report (*i, of);
 		of.close ();
 	}
-}
-int
-main (int argc, char *argv[])
-{
-	MeshTest t;
-	t.Configure (argc, argv);
-	return t.Run ();
 }

@@ -7,7 +7,6 @@
 # <params_i> are the parameters for the simulation and are defined in the simulation source code
 
 NumOfRuns=50 #number of runs for the simulation
-minimumNumberOfNeighbors=3
 
 ReturnDir=$(pwd) #directory to return to
 if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we are on the right folder
@@ -39,30 +38,17 @@ fi
 
 mkdir -p $ResultDir
 
-./waf build >/dev/null
+./waf build >/dev/null 2> /dev/null
 i=1
 while [ $i -le $NumOfRuns ]; do
 	echo "Running test number $i of $NumOfRuns"
 	echo "./build/dot11s_simulation/*$SimScript* $@" | ./waf shell
 
-	notEnough=0 #false
-	for report in mp-report-*; do
-		numOfNeighbors=$(cat $report|grep 'peerMeshPointAddress'|sort|uniq|wc -l)
-		if [ $numOfNeighbors -lt $minimumNumberOfNeighbors ]; then
-			notEnough=1 #true
-			break
-		fi
-	done
+	mkdir -p $ResultDir/test_$i/MeshHelperXmls
+	mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
+	mv FlowMonitorResults.xml $ResultDir/test_$i
 
-	if [ $notEnough -eq 0 ]; then
-		mkdir -p $ResultDir/test_$i/MeshHelperXmls
-		mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
-		mv FlowMonitorResults.xml $ResultDir/test_$i
-
-		i=$(($i+1))
-	else
-		echo 'Some node didnt have enought PeerLinks, trying again...'
-	fi
+	i=$(($i+1))
 done
 
 cd $ReturnDir

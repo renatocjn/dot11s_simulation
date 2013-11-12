@@ -22,7 +22,6 @@ def statistics(vals):
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) ) #returns a float out of a string
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list strings with non digits
-int_from_mac = lambda address: int(filter(lambda x: x!=':', address), 16) - 1 #transforms a mac address to a integer by assuming it is a hex value
 
 _, directories, _ = os.walk(os.curdir).next() #get direcories of the current folder
 numerical_sort(directories)
@@ -33,7 +32,15 @@ numerical_sort(directories)
 for run_dir in directories:
 	os.chdir( join(run_dir, 'MeshHelperXmls') )
 	link_graph = nx.MultiGraph() #the mesh points can have multiple links among mesh points
+
 	report_files = glob('mp-report-*.xml')
+	addressToNodeId = dict()
+	for report in report_files:
+		MeshPointDevice = etree.XML(open(report, 'r').read())
+		interfaces = MeshPointDevice.findall('Interface')
+		for i in interfaces:
+			addressToNodeId[i.get('Address')] = filter(str.isdigit, report)
+
 	numerical_sort(report_files)
 	for report_file in report_files:
 		xmlAsString = open(report_file,'r').read()
@@ -41,17 +48,16 @@ for run_dir in directories:
 
 		#this section is meant to populate the mapping interface/assigned channel for this mesh point
 		interfaces = xmlRootElement.findall('Interface')
-		aux = len(interfaces)
 		channels = dict() # this dict is meant to map a mesh points interface to its assigned channel
 		for i in interfaces:
 			channels[i.get('Address')] = i.get('Channel')
 
 		PeerManagementProtocolElement = xmlRootElement.find('PeerManagementProtocol')
 		currMeshPointAddress = PeerManagementProtocolElement.find('PeerManagementProtocolMac').get('address')
-		curr_id = int_from_mac(currMeshPointAddress)/aux #this aux is a fix for the multiple interfaces addressing problem
+		curr_id = filter(str.isdigit, report_file)
 		link_graph.add_node(curr_id)
 		for link in PeerManagementProtocolElement.findall('PeerLink'):
-			peerId = int_from_mac(link.get('peerMeshPointAddress'))/aux
+			peerId = addressToNodeId[link.get('peerMeshPointAddress')]
 			m = channels[link.get('localAddress')]
 			flag = False
 			if link_graph.get_edge_data(curr_id, peerId) is not None:
@@ -102,8 +108,7 @@ for folder in directories:
 	os.chdir( join(folder, 'MeshHelperXmls') )
 	for nodeXml in glob('mp-report-*.xml'):
 		xmlRootElement = etree.XML( open(nodeXml,'r').read() )
-		Id = int_from_mac( xmlRootElement.get('address') )
-		Id /= len(xmlRootElement.findall('Interface'))
+		Id = int(filter(str.isdigit, nodeXml))
 
 		n = xmlRootElement.find('Hwmp').find('HwmpProtocolMac').find('Statistics')
 		for key in ['rxPerr', 'rxPrep', 'rxPreq', 'txPerr', 'txPrep', 'txPreq']:
