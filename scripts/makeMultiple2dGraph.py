@@ -20,6 +20,7 @@ from numpy import array
 import pylab as pl
 from mpl_toolkits.mplot3d import Axes3D
 from copy import deepcopy
+from random import shuffle
 
 if len(argv) != 6:
 	print 'Usage:./make2dGraph.py <simulation> <Variating parameter for x axis> <list of values for variating parameter> <Variating parameter for each plot> <list of values for variating parameter>\n\tThe list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like \'v1 v2 v3\' to make it easier for this script\n\t'
@@ -94,6 +95,12 @@ for p1Val, p2Val in combinations:
 	draw graphics of the simulations
 '''
 plot_dir = 'multiple2D_%s_%s_vs_%s' % (simulation, parameter1, parameter2)
+
+lineFormats = '--', '-.', '-'
+lineMarkers = '', 'o', 'd', 'v', 's'
+formatStrings = [ y+x for y in lineMarkers for x in lineFormats ]
+shuffle(formatStrings)
+
 if not isdir(plot_dir):
 	mkdir(plot_dir)
 for m in results.keys():
@@ -103,6 +110,7 @@ for m in results.keys():
 	pl.ylabel(m)
 
 	maxy = -1
+	i=0
 	for plotv in parameter2Values:
 		values = filter(lambda x: x[1]==plotv, results[m])
 		x, _, y, std = zip(*values)
@@ -112,7 +120,9 @@ for m in results.keys():
 		x = map(float, x)
 
 		plot_label = '%s=%s'%(parameter2, plotv)
-		pl.errorbar(x, y, yerr=std, fmt='o-', label=plot_label)
+		curr_format = formatStrings[i]
+		pl.errorbar(x, y, yerr=std, fmt=curr_format, label=plot_label)
+		i = (i+1)%len(formatStrings)
 
 	pl.margins(0.05, 0.05)
 	pl.legend(loc='best')
