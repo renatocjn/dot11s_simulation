@@ -1,34 +1,47 @@
 #!/usr/bin/python
 
-'''
-	Usage:
-		./make2dGraph.py <simulation> <Variating parameter> <list of values for variating parameter>
-
-	This script runs simulations and shows a 2d graph of the results
-	the horizontal axis of the graph is the <Variating parameter> and it must be a parameter of the simulations
-	the vertical axis is a metric of what was run and must be in the file 'flow-statistics.txt'
-'''
-from os import curdir, pardir, chdir, walk, mkdir
-from os.path import isdir, join, isfile
+from os import curdir, pardir, chdir, walk, mkdir, environ
+from os.path import isdir, isfile
 from sys import argv, exit
 from subprocess import call
 from glob import glob
 import pylab as pl
 from numpy import array
-from copy import deepcopy
+import argparse
 
-if len(argv) < 4:
-	print 'Usage:\n\t./make2dGraph.py <simulation> <Variating parameter> <list of at least 2 values for \'variating parameter\'>'
-	exit(1)
+parser = argparse.ArgumentParser(description='This script runs simulations and shows a 2d graph of the results.\
+								 The horizontal axis of the graph is the <Variating parameter> and it must be a parameter of the simulation.\
+								 The vertical axis is a metric of what was run and must be in the file \'flow-statistics.txt\'.')
 
-simulation = argv[1]
-parameter = argv[2]
-parameterValues = argv[3:]
+parser.add_argument('sim', metavar='Simulation', type=str,
+                   help='simulation source code')
+
+parser.add_argument('param', metavar='VariatingParameter', type=str,
+                   help='parameter for the simulation')
+
+parser.add_argument('vals', metavar='val', type=float, nargs='+',
+                   help='values for the variation of parameter')
+
+parser.add_argument('--force-run', '-f', dest='force', action='store_true',
+					help='makes this script overwrite previous runs, by default it will detect previous runs and skip running them')
+
+parser.add_argument('others', metavar='Other Parameters', type=str, nargs=argparse.REMAINDER,
+					help='Arguments to be put in every run of the simulation')
+
+params = parser.parse_args()
+
+simulation = params.sim
+parameter = params.param
+parameterValues = params.vals
+others = params.others
+subEnviroment = environ.copy()
+if params.force:
+	subEnviroment['ForceRun'] = 'y'
 
 '''
 	Running the simulations
 '''
-mainScriptPath = join(curdir, 'scripts', 'main.sh')
+mainScriptPath = curdir+'/scripts/main.sh'
 if not isfile(mainScriptPath):
 	chdir(pardir)
 if not isfile(mainScriptPath):
@@ -37,11 +50,14 @@ if not isfile(mainScriptPath):
 
 directories = dict()
 for val in parameterValues:
-	directoriesBeforeRun = set(glob(join('results','*')))
 	print 'Running simulation %s with parameter %s equal to %s' % (simulation, parameter, val)
-	call( [ mainScriptPath, simulation, '--%s=%s' % (parameter, val) ] )
-	directoriesAfterRun = set(glob(join('results','*')))
-	directories[val] = (directoriesAfterRun-directoriesBeforeRun).pop() #this should return the new result directorie created by the lattest run
+	curr_param = '--%s=%s' % (parameter, val)
+	exitCode = call( [ mainScriptPath, simulation, curr_param ] + others, env=subEnviroment)
+	if exitCode is not 0:
+			print 'Something terribly wrong has happened, aborting...'
+			exit(1)
+	possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_param]+others ]) ]
+	directories[val] = min(possibleDirs, key=lambda x: len(x))
 
 '''
 	Preparing data structure of the results
@@ -96,5 +112,6 @@ for m in metrics.keys():
 	pl.title('%s vs %s' % (m, parameter))
 	pl.xlabel(parameter)
 	pl.ylabel(m)
+	pl.margins(0.05, 0.05)
 	pl.errorbar(x, y, yerr=std, marker='o')
-	pl.savefig(join(plot_dir, '%s_vs_%s.png' % (m, parameter)))
+	pl.savefig(plot_dir+'/%s_vs_%s.png' % (m, parameter))

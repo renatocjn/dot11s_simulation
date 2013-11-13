@@ -1,17 +1,7 @@
 #!/usr/bin/python
-'''
-	Usage:
-	./make2dGraph.py <simulation> <Variating parameter1 for x axis> <list of values for variating parameter1> <Variating parameter2 for each plot> <list of values for variating parameter2>
 
-	This script runs simulations and shows a graph with muiltiple2D plot of the results.
-	The x-axis of the graphs is the <Variating parameter1> and it must be a parameter of the simulations.
-	Each plot is run with variating parameter2.
-	The z-axis is a metric of what was run and must be in the file 'flow-statistics.txt'.
-
-	the list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like '1 2 3' to make it easier for this script
-'''
-from os import curdir, pardir, chdir, walk, mkdir
-from os.path import isdir, join, isfile
+from os import curdir, pardir, chdir, walk, mkdir, environ
+from os.path import isdir, isfile
 from sys import argv, exit
 from subprocess import call
 from glob import glob
@@ -19,31 +9,62 @@ import pylab as pl
 from numpy import array
 import pylab as pl
 from mpl_toolkits.mplot3d import Axes3D
-from copy import deepcopy
 from random import shuffle
+import argparse
 
-if len(argv) != 6:
-	print 'Usage:./make2dGraph.py <simulation> <Variating parameter for x axis> <list of values for variating parameter> <Variating parameter for each plot> <list of values for variating parameter>\n\tThe list of values of each parameter must be enclosed in quotations and each value must be separedted by a space like \'v1 v2 v3\' to make it easier for this script\n\t'
-	exit(1)
+parser = argparse.ArgumentParser(description='This script runs simulations and shows a graph with multiple 2D plots of the results.\
+	The <Variating parameter 1> is the x axis of the graphs and it must be a parameter of the simulation.\
+	The <Variating parameter 2> is set for each 2d plot of the graphs and it must be a parameter of the simulation.\
+	The y-axis is a metric of what was run and must be in the file \'flow-statistics.txt\'.')
 
-simulation = argv[1]
 
-parameter1 = argv[2]
-parameter1Values = argv[3].split()
+parser.add_argument('sim', metavar='Simulation', type=str,
+                   help='simulation source code')
+
+parser.add_argument('param1', metavar='Parameter1', type=str,
+                   help='parameter for x axis of the graph')
+
+parser.add_argument('vals1', metavar='ValuesForParameter1', type=str,
+                   help='values for the variation of parameter 1, must be a list surrounded by quotes, i.e. \'v1 v2 v3 ...\'')
+
+parser.add_argument('param2', metavar='Parameter2', type=str,
+                   help='parameter for the y axis of the graph')
+
+parser.add_argument('vals2', metavar='ValuesForParameter2', type=str,
+                   help='values for the variation of parameter 2, must be a list surrounded by quotes, i.e. \'v1 v2 v3 ...\'')
+
+parser.add_argument('--force-run', '-f', dest='force', action='store_true',
+					help='makes this script overwrite previous runs, by default it will detect previous runs and skip running them')
+
+parser.add_argument('others', metavar='Other Params', type=str, nargs=argparse.REMAINDER,
+					help='Arguments to be put in every run of the simulation')
+
+params = parser.parse_args()
+
+simulation = params.sim
+
+parameter1 = params.param1
+parameter1Values = params.vals1.split()
 if len(parameter1Values) < 2:
-	print 'Error on the values of parameter1'
+	print 'Weird number values for the parameter1 values'
 	exit(1)
 
-parameter2 = argv[4]
-parameter2Values = argv[5].split()
+parameter2 = params.param2
+parameter2Values = params.vals2.split()
 if len(parameter2Values) < 2:
-	print 'Error on the values of parameter2'
+	print 'Weird number values for the parameter2 values'
 	exit(1)
+
+others = params.others
+
+subEnviroment = environ.copy()
+if params.force:
+	subEnviroment['ForceRun'] = 'y'
 
 '''
 	Running the simulations
 '''
-mainScriptPath = join(curdir, 'scripts', 'main.sh')
+mainScriptPath = curdir+'/scripts/main.sh'
 if not isfile(mainScriptPath):
 	chdir(pardir)
 if not isfile(mainScriptPath):
@@ -53,11 +74,15 @@ if not isfile(mainScriptPath):
 combinations = [ (x, y) for x in parameter1Values for y in parameter2Values ]
 directories = dict() #mapping of combination to the result directory of the run
 for parameter1val, parameter2val in combinations:
-		directoriesBeforeRun = set(glob(join('results','*')))
 		print 'Running simulation %s with parameter %s equal to %s and parameter %s equal to %s' % (simulation, parameter1, parameter1val, parameter2, parameter2val)
-		call( [ mainScriptPath, simulation, '--%s=%s' % (parameter1, parameter1val), '--%s=%s' % (parameter2, parameter2val) ] )
-		directoriesAfterRun = set(glob(join('results','*')))
-		directories[ (parameter1val,parameter2val) ] = (directoriesAfterRun-directoriesBeforeRun).pop() #this should return the new result directory created by the latest run
+		curr_p1 = '--%s=%s' % (parameter1, parameter1val)
+		curr_p2 = '--%s=%s' % (parameter2, parameter2val)
+		exitCode = call( [ mainScriptPath, simulation, curr_p1, curr_p2 ] + others, env=subEnviroment)
+		if exitCode is not 0:
+			print 'Something terribly wrong has happened, aborting...'
+			exit(1)
+		possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_p1, curr_p2]+others ]) ]
+		directories[ (parameter1val, parameter2val) ] = min(possibleDirs, key=lambda x: len(x))
 
 '''
 	Preparing data structure of the results
@@ -126,5 +151,5 @@ for m in results.keys():
 
 	pl.margins(0.05, 0.05)
 	pl.legend(loc='best')
-	pl.savefig( join( plot_dir, 'm2d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2) ) )
+	pl.savefig( plot_dir + '/m2d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2) )
 	#pl.show()

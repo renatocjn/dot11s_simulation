@@ -3,8 +3,11 @@
 # Author: Renato Caminha J. Neto
 # started: Tuesday, September 03, 2013
 # usage: $main.sh <sim_code> <params_1>...<params_N>
-# <sim_code> is the path (without the type extention) to the source code of the ns3 simulation and the
+# <sim_code> is the name (without the type extention) of the source code of the ns3 simulation
 # <params_i> are the parameters for the simulation and are defined in the simulation source code
+
+SimScript=$1; shift
+params=`echo $@|fmt -s -w 1|sort`
 
 NumOfRuns=1 #number of runs for the simulation
 
@@ -16,39 +19,43 @@ if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we 
 fi
 cd ..
 
-name=''
-for i in $@; do
+name=$SimScript
+for i in $params; do
 	name=$name$i
 done
-
-#script variables
-ResultDir=$ReturnDir/results/results_$name			#root folder path of results
-SimScript=$1; shift									#simulation code path without the .cc extention
+ResultDir=$ReturnDir/results/$name
 
 if [ -d $ResultDir ]; then
-	read -p 'It seems this test has already been run, do you want to run it anyway? [y/N]' answer
-	answer=${answer:-n}
-	if [ y = $answer ]; then
+	echo "Already ran this..."
+	ForceRun=${ForceRun:-n}
+	if [ y = $ForceRun ]; then
+		echo "Running again!"
 		rm -Rf $ResultDir
 	else
-		echo 'okay, exiting...'
-		exit
+		echo "Skipping!"
+		exit 0
 	fi
 fi
 
 mkdir -p $ResultDir
 
+rm -f *.mp-report*
+rm -f FlowMonitorResults*
+
 ./waf build >/dev/null 2> /dev/null
-i=1
-while [ $i -le $NumOfRuns ]; do
+for i in `seq 1 $NumOfRuns`; do
 	echo "Running test number $i of $NumOfRuns"
 	echo "./build/dot11s_simulation/*$SimScript* $@" | ./waf shell
+
+	if [ ! -f FlowMonitorResults.xml ]; then
+		echo "XMLs not generated, aborting.."
+		rm -Rf $ResultDir
+		exit 1
+	fi
 
 	mkdir -p $ResultDir/test_$i/MeshHelperXmls
 	mv mp-report-*.xml $ResultDir/test_$i/MeshHelperXmls
 	mv FlowMonitorResults.xml $ResultDir/test_$i
-
-	i=$(($i+1))
 done
 
 cd $ReturnDir

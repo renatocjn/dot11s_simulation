@@ -252,6 +252,7 @@ bool MeshTest::checkRunForConnections() {
 	/// Not the nicest way but couldn't find a better one ~RenatoCJN
 	std::string checkCommandLine = std::string("./check.sh ").append(m_minimumNumberOfNeighbors).append(" mp-report-*.xml");
 
+	/// The program must exit with 1 for a valid run and 0 for a invalid run
 	return system( checkCommandLine.c_str() );
 }
 
