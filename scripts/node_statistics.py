@@ -4,9 +4,11 @@ from os.path import isdir, join
 from lxml import etree
 from glob import glob
 import os, sys, numpy, random, networkx as nx
-#from scikits.bootstrap import ci
+from scikits.bootstrap import ci
 from shutil import rmtree
 import pylab as pl
+from scipy.stats import norm
+from math import sqrt
 
 if len(sys.argv) == 2 and isdir(sys.argv[1]): #minimum parameter checking
 	os.chdir(sys.argv[1])
@@ -14,11 +16,14 @@ else:
 	print 'please pass the directory with the results as the first parameter'
 	sys.exit(1)
 
-def statistics(vals):
-	vals = numpy.array(vals)
-	#try: tmp = list(ci( vals, numpy.\average ))
-	#except BaseException: tmp = None
-	return vals.mean(), vals.std()#, tmp
+def statistics(lvals):
+	vals = numpy.array(lvals)
+	mean = vals.mean()
+	if lvals.count(vals[0]) == len(vals): return mean, 0
+	tmp = norm.interval(0.95,loc=mean,scale=vals.std()/sqrt(len(vals)))
+	tmp = tmp[0] - tmp[1]
+	tmp = abs(tmp/2.0)
+	return mean, tmp
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) ) #returns a float out of a string
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list strings with non digits
@@ -159,5 +164,5 @@ fp = open('node-statistics.txt', 'w')
 for metric in per_simulation_statistics:
 	mean, std = statistics(per_simulation_values[metric])
 	fp.write('%s-mean=%f\n' % (metric, mean))
-	fp.write('%s-std=%f\n' % (metric, std))
+	fp.write('%s-err=%f\n' % (metric, std))
 fp.close()

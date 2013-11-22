@@ -9,7 +9,7 @@
 SimScript=$1; shift
 params=`echo $@|fmt -s -w 1|sort`
 
-NumOfRuns=1 #number of runs for the simulation
+NumOfRuns=5 #number of runs for the simulation
 
 ReturnDir=$(pwd) #directory to return to
 if [ $(basename $ReturnDir) != 'dot11s_simulation' ]; then #just making sure we are on the right folder
@@ -32,7 +32,7 @@ if [ -d $ResultDir ]; then
 		echo "Running again!"
 		rm -Rf $ResultDir
 	else
-		echo "Skipping!"
+		echo "Skipping the run!"
 		exit 0
 	fi
 fi

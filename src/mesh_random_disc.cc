@@ -24,6 +24,7 @@
 #include <list>
 
 #define EOL std::endl //EOL = End Of Line
+#define MAX_RETRIES 10
 
 using namespace ns3;
 
@@ -73,8 +74,8 @@ private:
 };
 
 MeshTest::MeshTest () :
-	m_radius (100),
-	m_numberNodes (10),
+	m_radius (500),
+	m_numberNodes (50),
 	m_nFlows (1),
 	m_randomStart (0.1),
 	m_totalTime (100.0),
@@ -228,7 +229,7 @@ void MeshTest::setupRandomMobility() {
 }
 
 void MeshTest::generateValidPositions() {
-	do {
+	for( int i=0; i<MAX_RETRIES && m_positions.empty(); i++ ) {
 		CreateNodes ();
 		setupRandomMobility();
 		InstallInternetStack ();
@@ -245,15 +246,21 @@ void MeshTest::generateValidPositions() {
 			}
 		}
 		Simulator::Destroy ();
-	} while(m_positions.empty());
+	}
+
+	if(m_positions.empty()) {
+		std::cout << "Maximum of retries for the topology were run!" << EOL << "Aborting..." << EOL;
+// 		std::exit(1);
+	}
 }
 
 bool MeshTest::checkRunForConnections() {
 	/// Not the nicest way but couldn't find a better one ~RenatoCJN
-	std::string checkCommandLine = std::string("./check.sh ").append(m_minimumNumberOfNeighbors).append(" mp-report-*.xml");
+	std::ostringstream os;
+ 	os << "../../../check.py " << m_minimumNumberOfNeighbors << " mp-report-*.xml";
 
 	/// The program must exit with 1 for a valid run and 0 for a invalid run
-	return system( checkCommandLine.c_str() );
+	return system( os.str().c_str() );
 }
 
 void MeshTest::loadPositions() {

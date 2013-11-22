@@ -1,9 +1,11 @@
+#!/usr/bin/python
+
 from glob import glob
 import networkx as nx
 from lxml import etree
 from sys import exit
 
-reports = glob(test+'/MeshHelperXmls/*')
+reports = glob('mp-report-*.xml')
 G = nx.Graph()
 for report in reports:
 	aux = open(report).read()

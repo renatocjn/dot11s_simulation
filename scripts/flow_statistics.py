@@ -3,11 +3,17 @@
 from lxml import etree
 from glob import glob
 import os, sys, numpy
-#from scikits.bootstrap import ci
+from scipy.stats import norm
+from math import sqrt
 
-def statistics(vals):
-	vals = numpy.array(vals)
-	return vals.mean(), vals.std()
+def statistics(lvals):
+	vals = numpy.array(lvals)
+	mean = vals.mean()
+	if lvals.count(vals[0]) == len(vals): return mean, 0
+	tmp = norm.interval(0.95,loc=mean,scale=vals.std()/sqrt(len(vals)))
+	tmp = tmp[0] - tmp[1]
+	tmp = abs(tmp/2.0)
+	return mean, tmp
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
@@ -89,7 +95,7 @@ if len(sys.argv) == 2:
 	for metric in stats.keys():
 		mean, std = stats[metric]
 		lines.append( '%s-mean=%f\n' % (metric, mean) )
-		lines.append( '%s-std=%f\n' % (metric, std) )
+		lines.append( '%s-err=%f\n' % (metric, std) )
 	output.writelines(lines)
 	output.close()
 	sys.exit()

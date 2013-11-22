@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from os import curdir, pardir, chdir, walk, mkdir, environ
+from os import curdir, pardir, chdir, walk, mkdir
 from os.path import isdir, isfile
 from sys import argv, exit
 from subprocess import call
@@ -57,9 +57,9 @@ if len(parameter2Values) < 2:
 
 others = params.others
 
-subEnviroment = environ.copy()
+force = []
 if params.force:
-	subEnviroment['ForceRun'] = 'y'
+	force = ['-f']
 
 '''
 	Running the simulations
@@ -77,7 +77,7 @@ for parameter1val, parameter2val in combinations:
 		print 'Running simulation %s with parameter %s equal to %s and parameter %s equal to %s' % (simulation, parameter1, parameter1val, parameter2, parameter2val)
 		curr_p1 = '--%s=%s' % (parameter1, parameter1val)
 		curr_p2 = '--%s=%s' % (parameter2, parameter2val)
-		exitCode = call( [ mainScriptPath, simulation, curr_p1, curr_p2 ] + others, env=subEnviroment)
+		exitCode = call( [ mainScriptPath ] + force + [ simulation, curr_p1, curr_p2 ] + others)
 		if exitCode is not 0:
 			print 'Something terribly wrong has happened, aborting...'
 			exit(1)
@@ -107,11 +107,11 @@ for p1Val, p2Val in combinations:
 	node_statistics = open('node-statistics.txt', 'r').read().split() # get list of lines in the statistics file
 	for m in wantedFlowMetrics:
 		metric_mean = float([ line for line in flow_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-		metric_std = float([ line for line in flow_statistics if m in line and 'std' in line ][0].split('=')[1]) #get line with the metric mean
+		metric_std = float([ line for line in flow_statistics if m in line and 'err' in line ][0].split('=')[1]) #get line with the metric mean
 		results[m].append( (p1Val, p2Val, metric_mean, metric_std) )
 	for m in wantedNodeMetrics:
 		metric_mean = float([ line for line in node_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-		metric_std = float([ line for line in node_statistics if m in line and 'std' in line ][0].split('=')[1]) #get line with the metric mean
+		metric_std = float([ line for line in node_statistics if m in line and 'err' in line ][0].split('=')[1]) #get line with the metric mean
 		results[m].append( (p1Val, p2Val, metric_mean, metric_std) )
 	chdir(pardir)
 	chdir(pardir)

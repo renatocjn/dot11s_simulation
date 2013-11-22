@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from os import curdir, pardir, chdir, walk, mkdir, environ
+from os import curdir, pardir, chdir, walk, mkdir
 from os.path import isdir, isfile
 from sys import argv, exit
 from subprocess import call
@@ -34,25 +34,25 @@ simulation = params.sim
 parameter = params.param
 parameterValues = params.vals
 others = params.others
-subEnviroment = environ.copy()
+force = []
 if params.force:
-	subEnviroment['ForceRun'] = 'y'
+	force = ['-f']
 
 '''
 	Running the simulations
 '''
-mainScriptPath = curdir+'/scripts/main.sh'
+mainScriptPath = curdir+'/scripts/main.py'
 if not isfile(mainScriptPath):
 	chdir(pardir)
 if not isfile(mainScriptPath):
-	print 'Simulation Script not found'
+	print 'Simulation Script not found, make sure you are in the dot11s_simulation folder'
 	exit(1)
 
 directories = dict()
 for val in parameterValues:
 	print 'Running simulation %s with parameter %s equal to %s' % (simulation, parameter, val)
 	curr_param = '--%s=%s' % (parameter, val)
-	exitCode = call( [ mainScriptPath, simulation, curr_param ] + others, env=subEnviroment)
+	exitCode = call( [ mainScriptPath ] + force + [ simulation, curr_param ] + others )
 	if exitCode is not 0:
 			print 'Something terribly wrong has happened, aborting...'
 			exit(1)
@@ -81,11 +81,11 @@ for param_val in parameterValues:
 	node_statistics = open('node-statistics.txt', 'r').read().split() # get list of lines in the statistics file
 	for m in wantedFlowMetrics:
 		mean = float([ line for line in flow_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-		std = float([ line for line in flow_statistics if m in line and 'std' in line ][0].split('=')[1]) #get line with the metric std
+		std = float([ line for line in flow_statistics if m in line and 'err' in line ][0].split('=')[1]) #get line with the metric std
 		metrics[m][param_val] = mean, std
 	for m in wantedNodeMetrics:
 		mean = float([ line for line in node_statistics if m in line and 'mean' in line ][0].split('=')[1]) #get line with the metric mean
-		std = float([ line for line in node_statistics if m in line and 'std' in line ][0].split('=')[1]) #get line with the metric std
+		std = float([ line for line in node_statistics if m in line and 'err' in line ][0].split('=')[1]) #get line with the metric std
 		metrics[m][param_val] = mean, std
 	chdir(pardir)
 	chdir(pardir)
