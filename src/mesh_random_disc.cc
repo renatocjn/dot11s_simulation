@@ -22,6 +22,7 @@
 #include <set>
 #include <cmath>
 #include <list>
+#include <unistd.h>
 
 #define EOL std::endl //EOL = End Of Line
 #define MAX_RETRIES 10
@@ -249,13 +250,16 @@ void MeshTest::generateValidPositions() {
 	}
 
 	if(m_positions.empty()) {
-		std::cout << "Maximum of retries for the topology were run!" << EOL << "Aborting..." << EOL;
-// 		std::exit(1);
+		std::cout << "Maximum of retries for the topology were run! Aborting..." << EOL;
+ 		std::exit(0);
 	}
 }
 
 bool MeshTest::checkRunForConnections() {
 	/// Not the nicest way but couldn't find a better one ~RenatoCJN
+
+	char path[256];
+	std::cout << getcwd(path, 255) << EOL;
 	std::ostringstream os;
  	os << "../../../check.py " << m_minimumNumberOfNeighbors << " mp-report-*.xml";
 

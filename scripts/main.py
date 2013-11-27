@@ -9,7 +9,7 @@ import argparse
 from shutil import rmtree, move
 from glob import glob
 
-DEFAULT_NUMBER_OF_RUNS = 4
+DEFAULT_NUMBER_OF_RUNS = 30
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
