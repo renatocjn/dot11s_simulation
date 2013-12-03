@@ -231,6 +231,7 @@ void MeshTest::setupRandomMobility() {
 }
 
 void MeshTest::generateValidPositions() {
+	std::cout << "[Mesh Random Disc] generating positions..."<< EOL;
 	for( int i=0; i<MAX_RETRIES && m_positions.empty(); i++ ) {
 		CreateNodes ();
 		setupRandomMobility();
@@ -240,7 +241,8 @@ void MeshTest::generateValidPositions() {
 		Simulator::Stop (Seconds (m_waitTime));
 		Simulator::Run ();
 
-		int itWasValid = checkRunForConnections();
+		bool itWasValid = checkRunForConnections();
+		std::cout << "[Mesh Random Disc] itWasValid: " << itWasValid << EOL;
 		if ( itWasValid ) {
 			for (uint32_t i=0; i<nodes.GetN(); i++) {
 				ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
@@ -266,11 +268,14 @@ bool MeshTest::checkRunForConnections() {
 
 // 	char path[256];
 // 	std::cout << getcwd(path, 255) << EOL;
-	std::ostringstream os;
- 	os << "../../../check.py " << m_minimumNumberOfNeighbors << " mp-report-*.xml";
+// 	std::ostringstream os;
+//  	os << "../../../check.py"
 
 	/// The program must exit with 1 for a valid run and 0 for a invalid run
-	return system( os.str().c_str() );
+	if (system( "../../../check.py" ) == 0)
+		return true;
+	else
+		return false;
 }
 
 void MeshTest::loadPositions() {

@@ -64,7 +64,7 @@ if params.force:
 '''
 	Running the simulations
 '''
-mainScriptPath = curdir+'/scripts/main.sh'
+mainScriptPath = curdir+'/scripts/main.py'
 if not isfile(mainScriptPath):
 	chdir(pardir)
 if not isfile(mainScriptPath):

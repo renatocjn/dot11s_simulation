@@ -9,7 +9,7 @@ import argparse
 from shutil import rmtree, move
 from glob import glob
 
-DEFAULT_NUMBER_OF_RUNS = 30
+DEFAULT_NUMBER_OF_RUNS = 4
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
@@ -69,7 +69,11 @@ def runTest(i):
 runners = Pool()
 runs = range(1, params.num_runs+1)
 
-print 'Starting the runs'
-results = runners.map(runTest, runs)
-call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
-call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
+print 'Starting the experiment'
+try:
+	results = runners.map(runTest, runs)
+	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
+	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
+except Exception as e:
+	print "Something went wrong with the experiment..."
+	print e.message
