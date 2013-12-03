@@ -10,15 +10,11 @@ cp special-wscript ../wscript
 ```
 it will make the waf builder search these folders.
 
-#####The file check.sh must be in the 'ns-3.xx' folder
-```
-cp check.sh ..
-```
 ###Folders
 
 - results - this folder contains the results files of the simulations
 - scripts - this folder contains the scripts that run the simulations and organize the results
-- src - this folder contains the ns3 source code in C
+- src - this folder contains the ns3 simulations source code in C++
 
 ###Python dependencies
 
@@ -26,5 +22,6 @@ cp check.sh ..
 - scikits.bootstrap
 - networkx
 - matplotlib
+- scipy
 - lxml
 
