@@ -8,6 +8,7 @@ from glob import glob
 import pylab as pl
 from numpy import array
 import argparse
+from utils import clean_params
 
 parser = argparse.ArgumentParser(description='This script runs simulations and shows a 2d graph of the results.\
 								 The horizontal axis of the graph is the <Variating parameter> and it must be a parameter of the simulation.\
@@ -32,7 +33,7 @@ params = parser.parse_args()
 
 simulation = params.sim
 parameter = params.param
-parameterValues = params.vals
+parameterValues = clean_params(params.vals)
 others = params.others
 force = []
 if params.force:

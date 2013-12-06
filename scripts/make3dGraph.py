@@ -10,6 +10,7 @@ from numpy import array
 import pylab as pl
 from mpl_toolkits.mplot3d import Axes3D
 import argparse
+from utils import clean_params
 
 parser = argparse.ArgumentParser(description='This script runs simulations and saves 3d graphs of the results.\
 	The x-axis of the graph is the <Variating parameter 1> and it must be a parameter of the simulation.\
@@ -43,13 +44,13 @@ params = parser.parse_args()
 simulation = params.sim
 
 parameter1 = params.param1
-parameter1Values = params.vals1.split()
+parameter1Values = clean_params(params.vals1.split())
 if len(parameter1Values) < 2:
 	print 'Weird number values for the parameter1 values'
 	exit(1)
 
 parameter2 = params.param2
-parameter2Values = params.vals2.split()
+parameter2Values = clean_params(params.vals2.split())
 if len(parameter2Values) < 2:
 	print 'Weird number values for the parameter2 values'
 	exit(1)

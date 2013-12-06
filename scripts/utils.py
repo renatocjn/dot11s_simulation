@@ -12,3 +12,12 @@ def statistics(lvals):
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
 numerical_sort = lambda l: l.sort(lambda x,y: cmp( int(filter(lambda z:z.isdigit(), x)), int(filter(lambda z:z.isdigit(), y)) )) # numerical sort of list
+
+def clean_params(param_list):
+	new_params = list()
+	for param in param_list:
+		if float(param)%1 == 0:
+			new_params.append(int(param))
+		else:
+			new_params.append(float(param))
+	return new_params
