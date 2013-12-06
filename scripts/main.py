@@ -3,7 +3,7 @@
 from os import *
 from os.path import *
 from multiprocessing import Pool
-from subprocess import call
+from subprocess import call, Popen, PIPE
 from sys import exit
 import argparse
 from shutil import rmtree, move
@@ -36,22 +36,11 @@ params.sim_params.sort()
 outDir = [params.sim] + params.sim_params
 outDir = 'dot11s_simulation/results/'+''.join(outDir)
 
-if isdir(outDir) and params.force:
-	rmtree(outDir)
-elif isdir(outDir):
-	print "Already run this, skipping"
-	exit(0)
-mkdir(outDir)
-
-subEnv = environ.copy()
-subEnv['PATH'] = subEnv['PATH'] + ':' + getcwd()+'/dot11s_simulation/scripts'
-
 def runTest(i):
 	t = random()*10 + i%5
 	sleep(t)
 	global outDir
 	global params
-	global subEnv
 
 	testDir = outDir+'/test-%d'%i
 
@@ -61,7 +50,7 @@ def runTest(i):
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 
 	call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
-	call(call_list, env=subEnv)
+	call(call_list)
 
 	if len(glob(testDir+'/mp-report-*.xml'))==0:
 		raise Exception('mesh point reports were not found!')
@@ -74,11 +63,25 @@ runners = Pool()
 runs = range(1, params.num_runs+1)
 
 print 'Starting the experiment'
-call(['./waf', 'build'])
+builder = Popen(['./waf', 'build'], stderr=PIPE, stdout=PIPE)
+ret = builder.wait()
+if ret == 1:
+	print builder.stderr.read()
+	exit(1)
+
 try:
+	if isdir(outDir) and params.force:
+		rmtree(outDir)
+	elif isdir(outDir):
+		print "Already run this, skipping"
+		exit(0)
+	mkdir(outDir)
+
 	results = runners.map(runTest, runs)
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
-except Exception as e:
+except BaseException as e:
+	rmtree(outDir)
 	print "Something went wrong with the experiment..."
-	print e.message
+	print "Message:", e.message
+	exit(1)
