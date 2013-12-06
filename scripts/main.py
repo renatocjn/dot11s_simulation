@@ -8,8 +8,10 @@ from sys import exit
 import argparse
 from shutil import rmtree, move
 from glob import glob
+from time import sleep
+from random import random
 
-DEFAULT_NUMBER_OF_RUNS = 4
+DEFAULT_NUMBER_OF_RUNS = 30
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
@@ -45,6 +47,9 @@ subEnv = environ.copy()
 subEnv['PATH'] = subEnv['PATH'] + ':' + getcwd()+'/dot11s_simulation/scripts'
 
 def runTest(i):
+	t = random()*10 + i%5
+	print 'sleep:', t
+	sleep(t)
 	global outDir
 	global params
 	global subEnv
@@ -70,6 +75,7 @@ runners = Pool()
 runs = range(1, params.num_runs+1)
 
 print 'Starting the experiment'
+call(['./waf', 'build'])
 try:
 	results = runners.map(runTest, runs)
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])

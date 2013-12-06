@@ -24,6 +24,21 @@ numerical_sort(directories)
 	Acquiring the graph of links among the mesh points for each run
 '''
 for run_dir in directories:
+
+	for pfile in glob(run_dir+'/positions.txt'):
+		pfile_contents = open(pfile, 'r').read()
+		ids, x_positions, y_positions = list(), list(), list()
+		for line in pfile_contents.strip().split():
+			i, x, y = line.split('|')
+			ids.append(i)
+			x_positions.append(x)
+			y_positions.append(y)
+		pl.clf()
+		pl.scatter(x_positions, y_positions)
+		for i, x, y in zip(ids, x_positions, y_positions):
+			pl.annotate(str(i), xy = (x, y), xytext = (0, 0), textcoords = 'offset points')
+		pl.savefig(run_dir+'/positions.png')
+
 	os.chdir( join(run_dir, 'MeshHelperXmls') )
 	link_graph = nx.MultiGraph() #the mesh points can have multiple links among mesh points
 

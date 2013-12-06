@@ -122,7 +122,9 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	NS_LOG_DEBUG ("Random Disk area with " << m_numberNodes << " nodes");
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
 
-	SeedManager::SetSeed(rand());
+	int seed = rand();
+// 	std::cout << "[Mesh Random Disc] seed: " << seed << EOL;
+	SeedManager::SetSeed(seed);
 }
 
 int MeshTest::Run () {
@@ -260,6 +262,12 @@ void MeshTest::generateValidPositions() {
 		}
 		std::cout << "Maximum of retries for the topology were run! Aborting..." << EOL;
  		std::exit(0);
+	} else {
+		FILE* fp = std::fopen("positions.txt", "w");
+		for (uint32_t i=0; i<nodes.GetN(); i++) {
+			ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
+			fprintf(fp, "%d|%f|%f\n", i, p.x, p.y);
+		}
 	}
 }
 
