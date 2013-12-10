@@ -20,6 +20,8 @@ else:
 _, directories, _ = os.walk(os.curdir).next() #get direcories of the current folder
 numerical_sort(directories)
 
+density, less_connected, most_connected = list(), list(), list()
+
 '''
 	Acquiring the graph of links among the mesh points for each run
 '''
@@ -74,12 +76,17 @@ for run_dir in directories:
 					if d['label'] == m: flag = True
 			if not flag:
 				link_graph.add_edge(curr_id, peerId, label = m)
+	aux_graph = nx.Graph(link_graph)
+	connections_count = [ len(aux_graph[n]) for n in aux_graph.nodes() ]
+
+	density.append( float(sum(connections_count))/len(connections_count) )
+	most_connected.append( max(connections_count) )
+	less_connected.append( min(connections_count) )
 
 	os.chdir(join(os.pardir, os.pardir))
 	if not isdir( join(run_dir, 'graphics') ):
 		os.mkdir(join(run_dir, 'graphics'))
 	nx.write_dot(link_graph, join(run_dir, 'graphics', 'peer_link_graph.dot'))
-
 '''
 	recovering values from the nodes xml files
 '''
@@ -104,7 +111,10 @@ per_simulation_values = dict()
 per_simulation_statistics = {'totalPreq', # Sum of initiatedPreq
 							 'totalPrep', # Sum of initiatedPrep
 							 'totalPerr', # Sum of initiatedPerr
-							 'totalDropped' # Sum of dropped
+							 'totalDropped', # Sum of dropped
+							 'connectionsDensity',
+							 'mostConnected',
+							 'lessConnected'
 							 }
 
 for k in per_simulation_statistics:
@@ -165,6 +175,9 @@ for folder in directories:
 	Savin per simulation values to statistics file
 '''
 fp = open('node-statistics.txt', 'w')
+per_simulation_values['connectionsDensity'] = density
+per_simulation_values['mostConnected'] = most_connected
+per_simulation_values['lessConnected'] = less_connected
 for metric in per_simulation_statistics:
 	mean, std = statistics(per_simulation_values[metric])
 	fp.write('%s-mean=%f\n' % (metric, mean))

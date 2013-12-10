@@ -26,7 +26,7 @@
 #include <cstdio>
 
 #define EOL std::endl //EOL = End Of Line
-#define MAX_RETRIES 10
+#define MAX_RETRIES 3
 
 using namespace ns3;
 

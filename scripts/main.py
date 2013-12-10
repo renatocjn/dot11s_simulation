@@ -11,7 +11,7 @@ from glob import glob
 from time import sleep
 from random import random
 
-DEFAULT_NUMBER_OF_RUNS = 1
+DEFAULT_NUMBER_OF_RUNS = 3
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
