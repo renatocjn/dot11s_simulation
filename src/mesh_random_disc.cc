@@ -51,9 +51,9 @@ private:
 	uint32_t  m_nIfaces;
 	bool      m_chan;
 	bool      m_pcap;
+	int       m_seed;
 	std::string m_stack;
 	std::string m_root;
-	std::string m_minimumNumberOfNeighbors;
 	unsigned int m_serverId;
 	double m_waitTime;
 
@@ -76,19 +76,19 @@ private:
 };
 
 MeshTest::MeshTest () :
-	m_radius (500),
+	m_radius (300),
 	m_numberNodes (50),
 	m_nFlows (1),
 	m_randomStart (0.1),
 	m_totalTime (100.0),
 	m_packetInterval (0.1),
 	m_packetSize (1024),
-	m_nIfaces (2),
+	m_nIfaces (1),
 	m_chan (true),
 	m_pcap (false),
+	m_seed (-1),
 	m_stack ("ns3::Dot11sStack"),
 	m_root ("00:00:00:00:00:01"),
-	m_minimumNumberOfNeighbors ("3"),
 	m_serverId (0),
 	m_waitTime(5.0) {}
 
@@ -101,30 +101,33 @@ int main (int argc, char *argv[]) {
 void MeshTest::Configure (int argc, char *argv[]) {
 	srand(time(NULL));
 	CommandLine cmd;
-	cmd.AddValue ("radius", "Radius of the disk that the mesh points are located. [150 m]", m_radius);
+
+	cmd.AddValue ("radius", "Radius of the disk that the mesh points are randomly located. [300 m]", m_radius);
 	cmd.AddValue ("number-of-nodes",  "Number of nodes in the simulation. [50]", m_numberNodes);
 	cmd.AddValue ("flows", "Number of flows in the simulation. [1]", m_nFlows);
-	cmd.AddValue ("neighbors",  "Minimum number of neighbors per node. [3]", m_minimumNumberOfNeighbors);
 
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 
 	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
-	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [2]", m_nIfaces);
+	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [1]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);
-	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
+	cmd.AddValue ("wait-time", "Time waited before starting applications [5 s]", m_waitTime);
 
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
+
+	cmd.AddValue ("seed", "Seed for the generation of the simulation, must be positive, if not set it will be a random number generated from time", m_seed);
 
 	cmd.Parse (argc, argv);
 
 	NS_LOG_DEBUG ("Random Disk area with " << m_numberNodes << " nodes");
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
 
-	int seed = rand();
-// 	std::cout << "[Mesh Random Disc] seed: " << seed << EOL;
-	SeedManager::SetSeed(seed);
+	if (m_seed == -1) {
+		m_seed = rand();
+	}
+	SeedManager::SetSeed(m_seed);
 }
 
 int MeshTest::Run () {
@@ -146,6 +149,10 @@ int MeshTest::Run () {
 
 	m_flowMonitor->CheckForLostPackets();
 	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
+
+	FILE* fp = std::fopen("seed.txt", "w");
+	std::fprintf(fp, "%d\n", m_seed);
+	std::fclose(fp);
 	return 0;
 }
 
@@ -160,12 +167,10 @@ void MeshTest::CreateNodes () {
 	mesh = MeshHelper::Default ();
 	mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue (Mac48Address (m_root.c_str ())));
 
-	if (m_chan)
-	{
+	if (m_chan) {
 		mesh.SetSpreadInterfaceChannels (MeshHelper::SPREAD_CHANNELS);
 	}
-	else
-	{
+	else {
 		mesh.SetSpreadInterfaceChannels (MeshHelper::ZERO_CHANNEL);
 	}
 
@@ -233,7 +238,6 @@ void MeshTest::setupRandomMobility() {
 }
 
 void MeshTest::generateValidPositions() {
-	std::cout << "[Mesh Random Disc] generating positions..."<< EOL;
 	for( int i=0; i<MAX_RETRIES && m_positions.empty(); i++ ) {
 		CreateNodes ();
 		setupRandomMobility();
@@ -244,7 +248,6 @@ void MeshTest::generateValidPositions() {
 		Simulator::Run ();
 
 		bool itWasValid = checkRunForConnections();
-		std::cout << "[Mesh Random Disc] itWasValid: " << itWasValid << EOL;
 		if ( itWasValid ) {
 			for (uint32_t i=0; i<nodes.GetN(); i++) {
 				ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
@@ -279,7 +282,6 @@ bool MeshTest::checkRunForConnections() {
 // 	std::ostringstream os;
 //  	os << "../../../check.py"
 
-	/// The program must exit with 1 for a valid run and 0 for a invalid run
 	if (system( "../../../check.py" ) == 0)
 		return true;
 	else

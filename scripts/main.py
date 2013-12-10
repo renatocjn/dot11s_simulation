@@ -9,9 +9,10 @@ import argparse
 from shutil import rmtree, move
 from glob import glob
 from time import sleep
-from random import random
+from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 3
+DEFAULT_NUMBER_OF_RUNS = 10
+MAX_SEED = 10000
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
@@ -36,9 +37,9 @@ params.sim_params.sort()
 outDir = [params.sim] + params.sim_params
 outDir = 'dot11s_simulation/results/'+''.join(outDir)
 
-def runTest(i):
-	t = random()*10 + i%5
-	sleep(t)
+def runTest(conf):
+	i, seed = conf
+
 	global outDir
 	global params
 
@@ -46,7 +47,7 @@ def runTest(i):
 
 	mkdir(testDir)
 
-	ns3_simulation_simulation_and_params = [params.sim] + params.sim_params
+	ns3_simulation_simulation_and_params = [params.sim] + ['--seed=%d' % seed] + params.sim_params
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 
 	call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
@@ -60,7 +61,6 @@ def runTest(i):
 		move(report, testDir+'/MeshHelperXmls/'+report.split('/')[-1])
 
 runners = Pool()
-runs = range(1, params.num_runs+1)
 
 print 'Starting the experiment'
 builder = Popen(['./waf', 'build'], stderr=PIPE, stdout=PIPE)
@@ -70,6 +70,10 @@ if ret == 1:
 	exit(1)
 
 try:
+	seeds = set()
+	while len(seeds) < params.num_runs:
+		seeds.add( randint(0, MAX_SEED) )
+
 	if isdir(outDir) and params.force:
 		rmtree(outDir)
 	elif isdir(outDir):
@@ -77,7 +81,7 @@ try:
 		exit(0)
 	mkdir(outDir)
 
-	results = runners.map(runTest, runs)
+	results = runners.map(runTest, enumerate(seeds, 1))
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
 except BaseException as e:

@@ -64,6 +64,11 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <set>
+#include <cmath>
+#include <list>
+#include <unistd.h>
+#include <cstdio>
 
 #define EOL '\n' //EOL = End Of Line
 
@@ -90,6 +95,7 @@ private:
 	uint32_t  m_nIfaces;
 	bool      m_chan;
 	bool      m_pcap;
+	int       m_seed;
 	std::string m_stack;
 	std::string m_root;
 	unsigned int m_serverId;
@@ -126,6 +132,7 @@ m_packetSize (1024),
 m_nIfaces (2),
 m_chan (true),
 m_pcap (false),
+m_seed (-1),
 m_stack ("ns3::Dot11sStack"),
 m_root ("ff:ff:ff:ff:ff:ff"),
 m_serverId (0),
@@ -157,12 +164,18 @@ MeshTest::Configure (int argc, char *argv[])
 	cmd.AddValue ("client", "Id of the client of the UDP ping [default is the node with the largest Id]", m_clientId);
 	cmd.AddValue ("server", "Id of the server of the UDP ping [0]", m_serverId);
 	cmd.AddValue ("wait-time", "Time waited before starting aplications [5 s]", m_waitTime);
+	cmd.AddValue ("seed", "Seed for the generation of the simulation, must be positive, if not set it will be a random number generated from time", m_seed);
 	cmd.Parse (argc, argv);
 
 	SeedManager::SetSeed(rand());
 
 	NS_LOG_DEBUG ("Grid:" << m_xSize << "*" << m_ySize);
 	NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
+
+	if (m_seed == -1) {
+		m_seed = rand();
+	}
+	SeedManager::SetSeed(m_seed);
 }
 void
 MeshTest::CreateNodes ()

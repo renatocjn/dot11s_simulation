@@ -18,10 +18,5 @@ for report in reports:
 	for link in links:
 		peerAddress = link.get('peerMeshPointAddress')
 		G.add_edge(curr_address, peerAddress)
-
-print "[check.py] densidade media:", float(len(G.nodes()))/float(len(G.edges()))
-if nx.is_connected(G):
-	print "[check.py] connected"
-else:
-	print "[check.py] not connected"
+if not nx.is_connected(G):
 	raise Exception("[check.py] invalid topology!")
