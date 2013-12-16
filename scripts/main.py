@@ -11,7 +11,7 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 10
+DEFAULT_NUMBER_OF_RUNS = 1
 MAX_SEED = 10000
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
@@ -85,7 +85,7 @@ try:
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
 except BaseException as e:
-	rmtree(outDir)
+	#rmtree(outDir)
 	print "Something went wrong with the experiment..."
 	print "Message:", e.message
 	exit(1)

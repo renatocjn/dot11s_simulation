@@ -13,7 +13,7 @@
 #include "ns3/mesh-helper.h"
 #include "ns3/random-variable.h"
 #include "ns3/flow-monitor-module.h"
-
+#include "ns3/hwmp-protocol.h"
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
@@ -26,7 +26,7 @@
 #include <cstdio>
 
 #define EOL std::endl //EOL = End Of Line
-#define MAX_RETRIES 3
+#define MAX_RETRIES 10
 
 using namespace ns3;
 
@@ -165,6 +165,7 @@ void MeshTest::CreateNodes () {
 	wifiPhy.SetChannel (wifiChannel.Create ());
 
 	mesh = MeshHelper::Default ();
+
 	mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue (Mac48Address (m_root.c_str ())));
 
 	if (m_chan) {
@@ -176,10 +177,17 @@ void MeshTest::CreateNodes () {
 
 	mesh.SetMacType ("RandomStart", TimeValue (Seconds (m_randomStart)));
 	mesh.SetNumberOfInterfaces (m_nIfaces);
+
 	meshDevices = mesh.Install (wifiPhy, nodes);
 
 	if (m_pcap)
 		wifiPhy.EnablePcapAll (std::string ("mp-"));
+
+	Ptr<NetDevice> nd = meshDevices.Get(m_serverId);
+	Ptr<MeshPointDevice> mpd = nd->GetObject<MeshPointDevice>();
+	Ptr<MeshL2RoutingProtocol> protocol = mpd->GetObject<MeshL2RoutingProtocol>();
+	Ptr<dot11s::HwmpProtocol> hwmp = mpd->GetObject<dot11s::HwmpProtocol>();
+	hwmp->SetRoot();
 }
 
 void MeshTest::InstallInternetStack () {
@@ -264,11 +272,11 @@ void MeshTest::generateValidPositions() {
 	}
 
 	if(m_positions.empty()) {
-		for( unsigned i=0; i<m_numberNodes; i++) {
-			std::ostringstream os;
-			os << "mp-report-"<< i << ".xml";
-			std::remove(os.str().c_str());
-		}
+// 		for( unsigned i=0; i<m_numberNodes; i++) {
+// 			std::ostringstream os;
+// 			os << "mp-report-"<< i << ".xml";
+// 			std::remove(os.str().c_str());
+// 		}
 		std::cout << "Maximum of retries for the topology were run! Aborting..." << EOL;
  		std::exit(0);
 	}
@@ -276,11 +284,6 @@ void MeshTest::generateValidPositions() {
 
 bool MeshTest::checkRunForConnections() {
 	/// Not the nicest way but couldn't find a better one ~RenatoCJN
-
-// 	char path[256];
-// 	std::cout << getcwd(path, 255) << EOL;
-// 	std::ostringstream os;
-//  	os << "../../../check.py"
 
 	if (system( "../../../check.py" ) == 0)
 		return true;
