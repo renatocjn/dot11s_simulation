@@ -98,6 +98,7 @@ try:
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
 except BaseException as e:
+	#rmtree(outDir)
 	runners.terminate()
 	print "Something went wrong with the experiment..."
 	print "Message:", e.message
