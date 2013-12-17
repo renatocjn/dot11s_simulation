@@ -235,14 +235,10 @@ void MeshTest::InstallApplication () {
 void MeshTest::setupRandomMobility() {
 	MobilityHelper mobility;
 
-	Ptr<UniformRandomVariable> rho = CreateObject<UniformRandomVariable>();
-	rho->SetAttribute("Min", DoubleValue(0.0));
-	rho->SetAttribute("Max", DoubleValue(m_radius));
-
-	Ptr<RandomDiscPositionAllocator> positionAllocator = CreateObject<RandomDiscPositionAllocator>();
+	Ptr<UniformDiscPositionAllocator> positionAllocator = CreateObject<UniformDiscPositionAllocator>();
 	positionAllocator->SetX(0.0);
 	positionAllocator->SetY(0.0);
-	positionAllocator->SetRho(rho);
+	positionAllocator->SetRho(m_radius);
 
 	mobility.SetPositionAllocator(positionAllocator);
 

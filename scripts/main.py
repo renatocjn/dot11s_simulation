@@ -2,7 +2,7 @@
 
 from os import *
 from os.path import *
-from multiprocessing import Pool
+from multiprocessing import Pool, Value
 from subprocess import call, Popen, PIPE
 from sys import exit
 import argparse
@@ -11,8 +11,11 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 1
+DEFAULT_NUMBER_OF_RUNS = 10
 MAX_SEED = 10000
+MAX_RETRIES = 3
+VALID_RUN = 0
+INVALID_RUN = 1
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
@@ -37,21 +40,26 @@ params.sim_params.sort()
 outDir = [params.sim] + params.sim_params
 outDir = 'dot11s_simulation/results/'+''.join(outDir)
 
+retryCounter = Value('i', 0)
+
 def runTest(conf):
 	i, seed = conf
-
-	global outDir
-	global params
+	global outDir, params, retryCounter, MAX_RETRIES
 
 	testDir = outDir+'/test-%d'%i
-
 	mkdir(testDir)
 
 	ns3_simulation_simulation_and_params = [params.sim] + ['--seed=%d' % seed] + params.sim_params
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 
 	call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
-	call(call_list)
+	ret = call(call_list)
+
+	while( ret != VALID_RUN and retryCounter.value < MAX_RETRIES ):
+		with retryCounter.get_lock(): retryCounter.value += 1
+		ret = call(call_list)
+	if retryCounter.value >= MAX_RETRIES:
+		return False
 
 	if len(glob(testDir+'/mp-report-*.xml'))==0:
 		raise Exception('mesh point reports were not found!')
@@ -60,12 +68,15 @@ def runTest(conf):
 	for report in glob(testDir+'/mp-report-*.xml'):
 		move(report, testDir+'/MeshHelperXmls/'+report.split('/')[-1])
 
+	return True
+
 runners = Pool()
 
-print 'Starting the experiment'
+print 'Compiling the experiment'
 builder = Popen(['./waf', 'build'], stderr=PIPE, stdout=PIPE)
 ret = builder.wait()
 if ret == 1:
+	print 'Erros na compilacao:'
 	print builder.stderr.read()
 	exit(1)
 
@@ -73,7 +84,6 @@ try:
 	seeds = set()
 	while len(seeds) < params.num_runs:
 		seeds.add( randint(0, MAX_SEED) )
-
 	if isdir(outDir) and params.force:
 		rmtree(outDir)
 	elif isdir(outDir):
@@ -81,11 +91,14 @@ try:
 		exit(0)
 	mkdir(outDir)
 
+	print 'Starting the experiment'
 	results = runners.map(runTest, enumerate(seeds, 1))
+	if not all(results) is True:
+		raise Exception('Limit of retries exceeded!')
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
 except BaseException as e:
-	#rmtree(outDir)
+	runners.terminate()
 	print "Something went wrong with the experiment..."
 	print "Message:", e.message
 	exit(1)
