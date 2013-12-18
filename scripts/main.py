@@ -2,7 +2,7 @@
 
 from os import *
 from os.path import *
-from multiprocessing import Pool, Value
+from multiprocessing import Pool, Value, Array
 from subprocess import call, Popen, PIPE
 from sys import exit
 import argparse
@@ -11,9 +11,9 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 10
+DEFAULT_NUMBER_OF_RUNS = 4
 MAX_SEED = 10000
-MAX_RETRIES = 3
+MAX_RETRIES = 10
 VALID_RUN = 0
 INVALID_RUN = 1
 
@@ -42,9 +42,18 @@ outDir = 'dot11s_simulation/results/'+''.join(outDir)
 
 retryCounter = Value('i', 0)
 
+seeds = set()
+while len(seeds) < params.num_runs + MAX_RETRIES:
+	seeds.add( randint(0, MAX_SEED) )
+seeds = list(seeds)
+
+retriesSeeds = seeds[:MAX_RETRIES]
+seeds = seeds[MAX_RETRIES:]
+retriesSeeds = Array('i', retriesSeeds)
+
 def runTest(conf):
 	i, seed = conf
-	global outDir, params, retryCounter, MAX_RETRIES
+	global outDir, params, retryCounter, MAX_RETRIES, retriesSeeds
 
 	testDir = outDir+'/test-%d'%i
 	mkdir(testDir)
@@ -55,10 +64,16 @@ def runTest(conf):
 	call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
 	ret = call(call_list)
 
-	while( ret != VALID_RUN and retryCounter.value < MAX_RETRIES ):
-		with retryCounter.get_lock(): retryCounter.value += 1
+	while( ret != VALID_RUN ):
+		with retryCounter.get_lock():
+			if retryCounter.value >= MAX_RETRIES: break
+			seed = retriesSeeds[ retryCounter.value ]
+			retryCounter.value += 1
+		ns3_simulation_simulation_and_params = [params.sim, '--seed=%d' % seed] + params.sim_params
+		ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
+		call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
 		ret = call(call_list)
-	if retryCounter.value >= MAX_RETRIES:
+	if ret == INVALID_RUN or retryCounter.value >= MAX_RETRIES:
 		return False
 
 	if len(glob(testDir+'/mp-report-*.xml'))==0:
@@ -76,14 +91,10 @@ print 'Compiling the experiment'
 builder = Popen(['./waf', 'build'], stderr=PIPE, stdout=PIPE)
 ret = builder.wait()
 if ret == 1:
-	print 'Erros na compilacao:'
+	print 'Errors during compilation:'
 	print builder.stderr.read()
 	exit(1)
-
 try:
-	seeds = set()
-	while len(seeds) < params.num_runs:
-		seeds.add( randint(0, MAX_SEED) )
 	if isdir(outDir) and params.force:
 		rmtree(outDir)
 	elif isdir(outDir):

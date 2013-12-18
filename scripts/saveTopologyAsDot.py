@@ -6,8 +6,16 @@ from lxml import etree
 from sys import exit
 from time import time
 import os
-reports = glob('mp-report-*.xml')
+import sys
 
+working_dir = os.curdir
+if len(sys.argv) == 2:
+	working_dir = sys.argv[1]
+elif len(sys.argv) > 2:
+	print 'run this without parameters or with the only parameter as the directory with the .xmls'
+	sys.exit(1)
+
+reports = glob(working_dir + '/mp-report-*.xml')
 ids = dict()
 for report in reports:
 	aux = open(report).read()
@@ -30,8 +38,6 @@ for report in reports:
 		peerAddress = link.get('peerMeshPointAddress')
 		peerId = ids[peerAddress]
 		G.add_edge(currId, peerId)
-print 'Media num conexoes:', float(len(G.edges()))/float(len(G.nodes()))
-nx.write_dot(G, 'checked_%d.dot' % int(time()))
-print G.edges()
-if not nx.is_connected(G):
-	raise Exception("[check.py] invalid topology!")
+
+print 'Media do numero de conexoes:', float(len(G.edges()))/float(len(G.nodes()))
+nx.write_dot(G, working_dir+'/failed.dot')

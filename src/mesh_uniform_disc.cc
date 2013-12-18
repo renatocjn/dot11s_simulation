@@ -26,7 +26,6 @@
 #include <cstdio>
 
 #define EOL std::endl //EOL = End Of Line
-#define MAX_RETRIES 10
 #define VALID_SIMULATION 0
 #define INVALID_SIMULATION 1
 
