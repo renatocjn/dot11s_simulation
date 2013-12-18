@@ -50,16 +50,21 @@ if not isfile(mainScriptPath):
 	exit(1)
 
 directories = dict()
+failed_runs = list()
 for val in parameterValues:
 	print 'Running simulation %s with parameter %s equal to %s' % (simulation, parameter, val)
 	curr_param = '--%s=%s' % (parameter, val)
-	exitCode = call( [ mainScriptPath ] + force + [ simulation, curr_param ] + others )
+	call_list = [ mainScriptPath ] + force + [ simulation, curr_param ] + others
+	exitCode = call( call_list )
 	if exitCode is not 0:
-			print 'Something terribly wrong has happened, aborting...'
-			exit(1)
+			failed_runs.add(call_list)
 	possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_param]+others ]) ]
 	directories[val] = min(possibleDirs, key=lambda x: len(x))
 
+if failed_runs:
+	print 'The following simulations failed:'
+	for failed_run in failed_runs: print failed_run
+	exit(1)
 '''
 	Preparing data structure of the results
 '''

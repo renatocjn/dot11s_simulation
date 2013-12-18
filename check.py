@@ -32,6 +32,5 @@ for report in reports:
 		G.add_edge(currId, peerId)
 print 'Media num conexoes:', float(len(G.edges()))/float(len(G.nodes()))
 nx.write_dot(G, 'checked_%d.dot' % int(time()))
-print G.edges()
 if not nx.is_connected(G):
 	raise Exception("[check.py] invalid topology!")

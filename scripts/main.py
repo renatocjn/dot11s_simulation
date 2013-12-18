@@ -69,6 +69,7 @@ def runTest(conf):
 			if retryCounter.value >= MAX_RETRIES: break
 			seed = retriesSeeds[ retryCounter.value ]
 			retryCounter.value += 1
+			print '[main.py] Retry number', retryCounter.value, 'out of', MAX_RETRIES
 		ns3_simulation_simulation_and_params = [params.sim, '--seed=%d' % seed] + params.sim_params
 		ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 		call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
@@ -85,7 +86,7 @@ def runTest(conf):
 
 	return True
 
-runners = Pool()
+runners = Pool(3)
 
 print 'Compiling the experiment'
 builder = Popen(['./waf', 'build'], stderr=PIPE, stdout=PIPE)
@@ -108,6 +109,7 @@ try:
 		raise Exception('Limit of retries exceeded!')
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
+	print 'Experiment completed successfully'
 except BaseException as e:
 	#rmtree(outDir)
 	runners.terminate()

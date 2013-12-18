@@ -71,18 +71,25 @@ if not isfile(mainScriptPath):
 	print 'Simulation Script not found'
 	exit(1)
 
+failed_runs = list()
 combinations = [ (x, y) for x in parameter1Values for y in parameter2Values ]
 directories = dict() #mapping of combination to the result directory of the run
 for parameter1val, parameter2val in combinations:
 		print 'Running simulation %s with parameter %s equal to %s and parameter %s equal to %s' % (simulation, parameter1, parameter1val, parameter2, parameter2val)
 		curr_p1 = '--%s=%s' % (parameter1, parameter1val)
 		curr_p2 = '--%s=%s' % (parameter2, parameter2val)
-		exitCode = call( [ mainScriptPath ] + force + [ simulation, curr_p1, curr_p2 ] + others)
+
+		call_list = [ mainScriptPath ] + force + [ simulation, curr_p1, curr_p2 ] + others
+		exitCode = call( call_list )
 		if exitCode is not 0:
-			print 'Something terribly wrong has happened, aborting...'
-			exit(1)
+			failed_runs.add( call_list )
 		possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_p1, curr_p2]+others ]) ]
 		directories[ (parameter1val, parameter2val) ] = min(possibleDirs, key=lambda x: len(x))
+
+if failed_runs:
+	print 'The following simulations failed:'
+	for failed_run in failed_runs: print failed_run
+	exit(1)
 
 '''
 	Preparing data structure of the results
