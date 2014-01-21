@@ -11,16 +11,16 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 4
+DEFAULT_NUMBER_OF_RUNS = 3
 MAX_SEED = 10000
-MAX_RETRIES = 10
+MAX_RETRIES = 1
 VALID_RUN = 0
 INVALID_RUN = 1
 
 parser = argparse.ArgumentParser(description='This script runs the simulations a number of times for statistical porpoises and organizes the outputs. It will use multiple processors if available')
 
-parser.add_argument('sim', metavar='Simulation', type=str,
-                   help='simulation source code name without extension')
+parser.add_argument('positioning', metavar='Positioning', type=str,
+                   help='Indicates which positioning generator to use')
 
 parser.add_argument('--force-run', '-f', dest='force', action='store_true',
 					help='Makes this script overwrite previous runs, by default it will detect previous runs and skip running them')
@@ -37,45 +37,27 @@ if getcwd().endswith("dot11s_simulation"): chdir('..')
 params = parser.parse_args()
 params.sim_params.sort()
 
-outDir = [params.sim] + params.sim_params
+outDir = [params.positioning] + params.sim_params
 outDir = 'dot11s_simulation/results/'+''.join(outDir)
 
-retryCounter = Value('i', 0)
+doneCounter = Value('i', 1)
 
 seeds = set()
-while len(seeds) < params.num_runs + MAX_RETRIES:
+while len(seeds) < params.num_runs+1:
 	seeds.add( randint(0, MAX_SEED) )
 seeds = list(seeds)
 
-retriesSeeds = seeds[:MAX_RETRIES]
-seeds = seeds[MAX_RETRIES:]
-retriesSeeds = Array('i', retriesSeeds)
-
 def runTest(conf):
 	i, seed = conf
-	global outDir, params, retryCounter, MAX_RETRIES, retriesSeeds
+	global outDir, params, doneCounter
 
 	testDir = outDir+'/test-%d'%i
 	mkdir(testDir)
 
-	ns3_simulation_simulation_and_params = [params.sim] + ['--seed=%d' % seed] + params.sim_params
+	ns3_simulation_simulation_and_params = ['mesh_generic_runner', '--positions-file=../topology_%d.txt' % (i%3), '--seed=%d' % seed] + params.sim_params
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
-
 	call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
-	ret = call(call_list)
-
-	while( ret != VALID_RUN ):
-		with retryCounter.get_lock():
-			if retryCounter.value >= MAX_RETRIES: break
-			seed = retriesSeeds[ retryCounter.value ]
-			retryCounter.value += 1
-			print '[main.py] Retry number', retryCounter.value, 'out of', MAX_RETRIES
-		ns3_simulation_simulation_and_params = [params.sim, '--seed=%d' % seed] + params.sim_params
-		ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
-		call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
-		ret = call(call_list)
-	if ret == INVALID_RUN or retryCounter.value >= MAX_RETRIES:
-		return False
+	call(call_list)
 
 	if len(glob(testDir+'/mp-report-*.xml'))==0:
 		raise Exception('mesh point reports were not found!')
@@ -84,9 +66,18 @@ def runTest(conf):
 	for report in glob(testDir+'/mp-report-*.xml'):
 		move(report, testDir+'/MeshHelperXmls/'+report.split('/')[-1])
 
-	return True
+	with doneCounter.get_lock():
+		print 'Finished run', doneCounter.value, 'out of', params.num_runs, 'runs'
+		doneCounter.value += 1
 
-runners = Pool(3)
+runners = Pool()
+
+if isdir(outDir) and params.force:
+		rmtree(outDir)
+elif isdir(outDir):
+	print "Already run this, skipping"
+	exit(0)
+mkdir(outDir)
 
 print 'Compiling the experiment'
 builder = Popen(['./waf', 'build'], stderr=PIPE, stdout=PIPE)
@@ -96,22 +87,26 @@ if ret == 1:
 	print builder.stderr.read()
 	exit(1)
 try:
-	if isdir(outDir) and params.force:
-		rmtree(outDir)
-	elif isdir(outDir):
-		print "Already run this, skipping"
-		exit(0)
-	mkdir(outDir)
+	print 'Generating topologies'
 
-	print 'Starting the experiment'
-	results = runners.map(runTest, enumerate(seeds, 1))
-	if not all(results) is True:
-		raise Exception('Limit of retries exceeded!')
+	topology_making_seed = seeds.pop()
+	ns3_simulation_simulation_and_params = [params.positioning, '--seed=%d' % topology_making_seed] + params.sim_params
+	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
+	call_list = ['./waf', '--cwd=%s' % outDir, '--run', ns3_simulation_simulation_and_params]
+	topology_maker = Popen(call_list)
+	ret = topology_maker.wait()
+	if ret != 0:
+		raise Exception("Couldn't create topologies!")
+
+	print 'Running simulations'
+	runners.map(runTest, enumerate(seeds, 1))
+
+	print 'Running analisys'
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
 	print 'Experiment completed successfully'
 except BaseException as e:
-	#rmtree(outDir)
+	rmtree(outDir)
 	runners.terminate()
 	print "Something went wrong with the experiment..."
 	print "Message:", e.message

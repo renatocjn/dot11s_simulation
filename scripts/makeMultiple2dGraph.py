@@ -19,8 +19,8 @@ parser = argparse.ArgumentParser(description='This script runs simulations and s
 	The y-axis is a metric of what was run and must be in the file \'flow-statistics.txt\'.')
 
 
-parser.add_argument('sim', metavar='Simulation', type=str,
-                   help='simulation source code')
+parser.add_argument('sim', metavar='Positioning', type=str,
+                   help='Which position generator to use')
 
 parser.add_argument('param1', metavar='Parameter1', type=str,
                    help='parameter for x axis of the graph')

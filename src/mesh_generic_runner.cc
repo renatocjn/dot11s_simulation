@@ -14,6 +14,7 @@
 #include "ns3/random-variable.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/hwmp-protocol.h"
+
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
@@ -24,10 +25,10 @@
 #include <list>
 #include <unistd.h>
 #include <cstdio>
+#include <sstream>
+#include <string>
 
 #define EOL std::endl //EOL = End Of Line
-#define VALID_SIMULATION 0
-#define INVALID_SIMULATION 1
 
 using namespace ns3;
 
@@ -42,7 +43,6 @@ public:
 	int Run ();
 
 private:
-	unsigned int m_radius;
 	unsigned int m_numberNodes;
 	unsigned int m_nFlows;
 	double    m_randomStart;
@@ -55,8 +55,13 @@ private:
 	int       m_seed;
 	std::string m_stack;
 	std::string m_root;
+	std::string m_positionsFilePath;
 	unsigned int m_serverId;
 	double m_waitTime;
+	double m_radius;
+	unsigned m_numberOfTopologiesToBeGenerated;
+	unsigned int m_xsize;
+	unsigned int m_ysize;
 
 	Ptr<FlowMonitor> m_flowMonitor;
 	NodeContainer nodes;
@@ -70,14 +75,12 @@ private:
 	void InstallInternetStack ();
 	void InstallApplication ();
 	void Report ();
-	bool checkRunForConnections(); // calls external script to check latest run for the minimum number of connections
-	void setupRandomMobility();
-	bool generateValidPositions();
 	void loadPositions();
+	void parsePositions();
+	double* splitAndCorrectType(std::string line);
 };
 
 MeshTest::MeshTest () :
-	m_radius (300),
 	m_numberNodes (50),
 	m_nFlows (1),
 	m_randomStart (0.1),
@@ -89,7 +92,8 @@ MeshTest::MeshTest () :
 	m_pcap (false),
 	m_seed (-1),
 	m_stack ("ns3::Dot11sStack"),
-	m_root ("00:00:00:00:00:01"), //may not be the real root mac address
+	m_root ("00:00:00:00:00:01"),
+	m_positionsFilePath (""),
 	m_serverId (0),
 	m_waitTime(5.0) {}
 
@@ -103,8 +107,9 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	srand(time(NULL));
 	CommandLine cmd;
 
-	cmd.AddValue ("radius", "Radius of the disk that the mesh points are randomly located. [300 m]", m_radius);
-	cmd.AddValue ("number-of-nodes",  "Number of nodes in the simulation. [50]", m_numberNodes);
+	cmd.AddValue ("x-size",  "Size of the x axis of the rectangle [100]", m_xsize);
+	cmd.AddValue ("y-size",  "Size of the y axis of the rectangle [100]", m_ysize);
+
 	cmd.AddValue ("flows", "Number of flows in the simulation. [1]", m_nFlows);
 
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
@@ -116,9 +121,17 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);
 	cmd.AddValue ("wait-time", "Time waited before starting applications [5 s]", m_waitTime);
 
+	cmd.AddValue ("positions-file", "path to file with positions for node placement", m_positionsFilePath);
+
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 
 	cmd.AddValue ("seed", "Seed for the generation of the simulation, must be positive, if not set it will be a random number generated from time", m_seed);
+
+
+	cmd.AddValue ("radius", "Radius of the disk that the mesh points are randomly located. [300 m]", m_radius);
+	cmd.AddValue ("number-of-nodes",  "Number of nodes in the simulation. [50]", m_numberNodes);
+
+	cmd.AddValue ("number-of-topologies", "Number of topologies to be generated [3]", m_numberOfTopologiesToBeGenerated);
 
 	cmd.Parse (argc, argv);
 
@@ -132,10 +145,6 @@ void MeshTest::Configure (int argc, char *argv[]) {
 }
 
 int MeshTest::Run () {
-	bool validTopology = generateValidPositions();
-	if ( !validTopology )
-		return INVALID_SIMULATION;
-
 	CreateNodes ();
 	loadPositions();
 	InstallInternetStack ();
@@ -157,10 +166,13 @@ int MeshTest::Run () {
 	std::fprintf(fp, "%d\n", m_seed);
 	std::fclose(fp);
 
-	return VALID_SIMULATION;
+	return 0;
 }
 
 void MeshTest::CreateNodes () {
+	parsePositions();
+	m_numberNodes = m_positions.size();
+
 	nodes = NodeContainer();
 	nodes.Create (m_numberNodes);
 
@@ -222,65 +234,16 @@ void MeshTest::InstallApplication () {
 	} while (clientIds.size() < m_nFlows);
 
 	NodeContainer clients;
+	FILE* fp = std::fopen("clients.txt", "w");
 	for (std::set<int>::iterator it = clientIds.begin(); it != clientIds.end(); it++) {
 		clients.Add(nodes.Get (*it));
+		std::fprintf(fp, "%d\n", *it);
 	}
+	std::fclose(fp);
 
 	ApplicationContainer clientApps = echoClient.Install (clients);
 	clientApps.Start (Seconds (m_waitTime));
 	clientApps.Stop (Seconds (totalTransmittingTime));
-}
-
-void MeshTest::setupRandomMobility() {
-	MobilityHelper mobility;
-
-	Ptr<UniformDiscPositionAllocator> positionAllocator = CreateObject<UniformDiscPositionAllocator>();
-	positionAllocator->SetX(0.0);
-	positionAllocator->SetY(0.0);
-	positionAllocator->SetRho(m_radius);
-
-	mobility.SetPositionAllocator(positionAllocator);
-
-	mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-	mobility.Install (nodes);
-}
-
-bool MeshTest::generateValidPositions() {
-	CreateNodes ();
-	setupRandomMobility();
-	InstallInternetStack ();
-
-	Simulator::Schedule (Seconds (m_waitTime), &MeshTest::Report, this);
-	Simulator::Stop (Seconds (m_waitTime));
-	Simulator::Run ();
-	Simulator::Destroy ();
-
-	bool itWasValid = checkRunForConnections();
-	if ( itWasValid ) {
-		FILE* fp = std::fopen("positions.txt", "w");
-		for (uint32_t i=0; i<nodes.GetN(); i++) {
-			ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
-			m_positions.push_back(p);
-			fprintf(fp, "%d|%f|%f\n", i, p.x, p.y);
-		}
-	} else {
-		for( unsigned i=0; i<m_numberNodes; i++) {
-			std::ostringstream os;
-			os << "mp-report-"<< i << ".xml";
-			std::remove(os.str().c_str());
-		}
- 		return false;
-	}
-	return true;
-}
-
-bool MeshTest::checkRunForConnections() {
-	/// Not the nicest way but couldn't find a better one ~RenatoCJN
-
-	if (system( "../../../check.py" ) == 0)
-		return true;
-	else
-		return false;
 }
 
 void MeshTest::loadPositions() {
@@ -295,6 +258,49 @@ void MeshTest::loadPositions() {
 
 	mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 	mobility.Install (nodes);
+}
+
+void MeshTest::parsePositions() {
+	std::ifstream inputFile (m_positionsFilePath.c_str());
+	std::string line;
+
+	while( inputFile.good() ) {
+		std::getline(inputFile, line);
+
+		double* splittedLine = this->splitAndCorrectType(line);
+// 		double node_id = splittedLine[0];
+		double x_pos = splittedLine[1];
+		double y_pos = splittedLine[2];
+
+		m_positions.push_back( Vector((double) x_pos, (double) y_pos, 0.0) );
+	}
+}
+
+double* MeshTest::splitAndCorrectType(std::string line) {
+	double* result = new double[3];
+
+	double curr_position = 0;
+	double nextDelim = line.find('|');
+	std::string substr = line.substr(curr_position, nextDelim);
+
+	std::stringstream ss1(substr);
+	ss1 >> result[0];
+
+	curr_position = nextDelim+1;
+	nextDelim = line.find('|', curr_position);
+	substr = line.substr(curr_position, nextDelim);
+
+	std::stringstream ss2(substr);
+	ss2 >> result[1];
+
+	curr_position = nextDelim+1;
+	nextDelim = line.length();
+	substr = line.substr(curr_position, nextDelim);
+
+	std::stringstream ss3(substr);
+	ss3 >> result[2];
+
+	return result;
 }
 
 void MeshTest::Report () {

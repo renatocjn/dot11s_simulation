@@ -3,3 +3,6 @@ results/*
 !.gitignore
 .directory
 src/local_tests/*
+2d_*
+multiple2D_*
+3d_*

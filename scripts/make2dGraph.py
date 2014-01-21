@@ -14,8 +14,8 @@ parser = argparse.ArgumentParser(description='This script runs simulations and s
 								 The horizontal axis of the graph is the <Variating parameter> and it must be a parameter of the simulation.\
 								 The vertical axis is a metric of what was run and must be in the file \'flow-statistics.txt\'.')
 
-parser.add_argument('sim', metavar='Simulation', type=str,
-                   help='simulation source code')
+parser.add_argument('sim', metavar='Positioning', type=str,
+                   help='Which position generator to use')
 
 parser.add_argument('param', metavar='VariatingParameter', type=str,
                    help='parameter for the simulation')
@@ -57,7 +57,7 @@ for val in parameterValues:
 	call_list = [ mainScriptPath ] + force + [ simulation, curr_param ] + others
 	exitCode = call( call_list )
 	if exitCode is not 0:
-			failed_runs.add(call_list)
+			failed_runs.append(call_list)
 	possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_param]+others ]) ]
 	directories[val] = min(possibleDirs, key=lambda x: len(x))
 

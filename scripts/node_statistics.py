@@ -17,7 +17,7 @@ else:
 	print 'please pass the directory with the results as the first parameter'
 	sys.exit(1)
 
-_, directories, _ = os.walk(os.curdir).next() #get direcories of the current folder
+_, directories, _ = os.walk(os.curdir).next() #get diretories of the current folder
 numerical_sort(directories)
 
 density, less_connected, most_connected = list(), list(), list()
@@ -25,22 +25,21 @@ density, less_connected, most_connected = list(), list(), list()
 '''
 	Acquiring the graph of links among the mesh points for each run
 '''
-for run_dir in directories:
-
-	for pfile in glob(run_dir+'/positions.txt'):
+for pfile in glob('topology*.txt'):
 		pfile_contents = open(pfile, 'r').read()
 		ids, x_positions, y_positions = list(), list(), list()
 		for line in pfile_contents.strip().split():
 			i, x, y = line.split('|')
 			ids.append(i)
-			x_positions.append(x)
-			y_positions.append(y)
+			x_positions.append(float(x))
+			y_positions.append(float(y))
 		pl.clf()
 		pl.scatter(x_positions, y_positions)
 		for i, x, y in zip(ids, x_positions, y_positions):
 			pl.annotate(str(i), xy = (x, y), xytext = (0, 0), textcoords = 'offset points')
-		pl.savefig(run_dir+'/positions.png')
+		pl.savefig(pfile + '.png')
 
+for run_dir in directories:
 	os.chdir( join(run_dir, 'MeshHelperXmls') )
 	link_graph = nx.MultiGraph() #the mesh points can have multiple links among mesh points
 
