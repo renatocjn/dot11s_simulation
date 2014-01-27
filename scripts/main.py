@@ -11,7 +11,7 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 3
+DEFAULT_NUMBER_OF_RUNS = 30
 MAX_SEED = 10000
 MAX_RETRIES = 1
 VALID_RUN = 0
@@ -54,7 +54,7 @@ def runTest(conf):
 	testDir = outDir+'/test-%d'%i
 	mkdir(testDir)
 
-	ns3_simulation_simulation_and_params = ['mesh_generic_runner', '--positions-file=../topology_%d.txt' % (i%3), '--seed=%d' % seed] + params.sim_params
+	ns3_simulation_simulation_and_params = ['mesh_generic_runner', '--positions-file=../topology_%d.txt' % (i%5), '--seed=%d' % seed] + params.sim_params
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 	call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
 	call(call_list)

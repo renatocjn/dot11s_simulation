@@ -87,7 +87,7 @@ MeshTest::MeshTest () :
 	m_radius (300),
 	m_numberNodes (50),
 	m_randomStart (0.1),
-	m_numberOfTopologiesToBeGenerated (3),
+	m_numberOfTopologiesToBeGenerated (5),
 	m_packetInterval (0.1),
 	m_packetSize (1024),
 	m_nIfaces (1),
