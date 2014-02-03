@@ -47,6 +47,7 @@ private:
 	unsigned int m_numberNodes;
 	double    m_randomStart;
 	unsigned m_numberOfTopologiesToBeGenerated;
+	unsigned int m_packetsPerSec;
 	double m_packetInterval;
 	uint16_t m_packetSize;
 	uint32_t  m_nIfaces;
@@ -84,6 +85,7 @@ MeshTest::MeshTest () :
 	m_numberNodes (50),
 	m_randomStart (0.1),
 	m_numberOfTopologiesToBeGenerated (5),
+	m_packetsPerSec (10),
 	m_packetInterval (0.1),
 	m_packetSize (1024),
 	m_nIfaces (1),
@@ -110,7 +112,7 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 
-	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
+	cmd.AddValue ("packets-per-sec",  "Number of packets to be send per secon [10]", m_packetsPerSec);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
 	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [1]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);

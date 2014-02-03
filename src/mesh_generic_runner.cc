@@ -47,6 +47,7 @@ private:
 	unsigned int m_nFlows;
 	double    m_randomStart;
 	double    m_totalTime;
+	unsigned int m_packetsPerSec;
 	double    m_packetInterval;
 	uint16_t  m_packetSize;
 	uint32_t  m_nIfaces;
@@ -85,6 +86,7 @@ MeshTest::MeshTest () :
 	m_nFlows (1),
 	m_randomStart (0.1),
 	m_totalTime (100.0),
+	m_packetsPerSec(10),
 	m_packetInterval (0.1),
 	m_packetSize (1024),
 	m_nIfaces (1),
@@ -115,7 +117,7 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 
-	cmd.AddValue ("packet-interval",  "Interval between packets in UDP ping, seconds [0.001 s]", m_packetInterval);
+	cmd.AddValue ("packets-per-sec",  "Number of packets to be send per secon [10]", m_packetsPerSec);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
 	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [1]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);
@@ -216,7 +218,7 @@ void MeshTest::InstallInternetStack () {
 
 void MeshTest::InstallApplication () {
 	double totalTransmittingTime = m_totalTime - 1.0;
-
+	m_packetInterval = 1.0 / ( (double) m_packetsPerSec );
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
 	serverApps.Start (Seconds (m_waitTime));
