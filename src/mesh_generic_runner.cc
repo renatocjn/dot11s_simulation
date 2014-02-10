@@ -218,7 +218,8 @@ void MeshTest::InstallInternetStack () {
 
 void MeshTest::InstallApplication () {
 	double totalTransmittingTime = m_totalTime - 1.0;
-	m_packetInterval = 1.0 / ( (double) m_packetsPerSec );
+	m_packetInterval = ( (double) m_nFlows ) / ( (double) m_packetsPerSec ) ;
+	std::cout << "packetInterval: " << m_packetInterval << std::endl;
 	UdpEchoServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
 	serverApps.Start (Seconds (m_waitTime));
