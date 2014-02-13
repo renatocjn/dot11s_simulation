@@ -11,7 +11,7 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 5
+DEFAULT_NUMBER_OF_RUNS = 30
 MAX_SEED = 10000
 MAX_RETRIES = 1
 VALID_RUN = 0
