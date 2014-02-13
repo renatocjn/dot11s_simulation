@@ -76,7 +76,6 @@ failed_runs = list()
 combinations = [ (x, y) for x in parameter1Values for y in parameter2Values ]
 directories = dict() #mapping of combination to the result directory of the run
 for parameter1val, parameter2val in combinations:
-		print 'Running simulation %s with parameter %s equal to %s and parameter %s equal to %s' % (simulation, parameter1, parameter1val, parameter2, parameter2val)
 		curr_p1 = '--%s=%s' % (parameter1, parameter1val)
 		curr_p2 = '--%s=%s' % (parameter2, parameter2val)
 
@@ -86,7 +85,6 @@ for parameter1val, parameter2val in combinations:
 			failed_runs.add( call_list )
 		possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_p1, curr_p2]+others ]) ]
 		directories[ (parameter1val, parameter2val) ] = min(possibleDirs, key=lambda x: len(x))
-
 if failed_runs:
 	print 'The following simulations failed:'
 	for failed_run in failed_runs: print failed_run
@@ -101,7 +99,19 @@ wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay', 'throu
 for m in wantedFlowMetrics:
 	results[m] = list()
 
-wantedNodeMetrics = ['totalDropped', 'totalPerr', 'totalPreq', 'totalPrep'] #these are the metrics that you want to make graphics of.
+wantedNodeMetrics = ['totalPreq',
+					'totalPrep',
+					'totalPerr',
+							'totalControlPkgs',
+							'totalDropped',
+							'connectionsDensity',
+							'mostConnected',
+							'lessConnected',
+							'forwardedPreq',
+							'initiatedProactivePreq',
+							'dropped',
+							'droppedTtl',
+							'totalQueued'] #these are the metrics that you want to make graphics of.
 for m in wantedNodeMetrics:
 	results[m] = list()
 
@@ -129,11 +139,7 @@ for p1Val, p2Val in combinations:
 '''
 plot_dir = 'multiple2D_%s_%s_vs_%s' % (simulation, parameter1, parameter2)
 
-lineFormats = '--', '-.', '-'
-lineMarkers = '', 'o', 'd', 'v', 's'
-formatStrings = [ y+x for y in lineMarkers for x in lineFormats ]
-shuffle(formatStrings)
-
+formatStrings = 'ko--', 'bd-.', 'mv-', 'rs--', 'bv-', 'mo--', 'ro-.', 'ks-', 'kv-.', 'ms-.'
 if not isdir(plot_dir):
 	mkdir(plot_dir)
 for m in results.keys():

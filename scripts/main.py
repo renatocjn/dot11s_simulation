@@ -11,7 +11,7 @@ from glob import glob
 from time import sleep
 from random import randint
 
-DEFAULT_NUMBER_OF_RUNS = 30
+DEFAULT_NUMBER_OF_RUNS = 5
 MAX_SEED = 10000
 MAX_RETRIES = 1
 VALID_RUN = 0
@@ -98,7 +98,7 @@ try:
 	if ret != 0:
 		raise Exception("Couldn't create topologies!")
 
-	print 'Running simulations'
+	print 'Running simulation with params:', params
 	runners.map(runTest, enumerate(seeds, 1))
 
 	print 'Running analisys'

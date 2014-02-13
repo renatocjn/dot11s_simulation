@@ -100,6 +100,7 @@ per_run_statistics = {'rxOpen', 'txOpen',
 					  'rxPrep', 'txPrep',
 					  'rxPreq', 'txPreq',
 					  'initiatedPreq', 'initiatedPrep', 'initiatedPerr',
+					  'forwardedPreq',
 					  'dropped',
 					  'droppedTtl',
 					  'totalQueued',
@@ -107,14 +108,20 @@ per_run_statistics = {'rxOpen', 'txOpen',
 					  }
 
 per_simulation_values = dict()
-per_simulation_statistics = {'totalPreq', # Sum of initiatedPreq
-							 'totalPrep', # Sum of initiatedPrep
-							 'totalPerr', # Sum of initiatedPerr
-							 'totalDropped', # Sum of dropped
-							 'connectionsDensity',
-							 'mostConnected',
-							 'lessConnected'
-							 }
+per_simulation_statistics = {'totalPreq',
+							'totalPrep',
+							'totalPerr',
+							'totalControlPkgs',
+							'totalDropped',
+							'connectionsDensity',
+							'mostConnected',
+							'lessConnected',
+							'forwardedPreq',
+							'initiatedProactivePreq',
+							'dropped',
+							'droppedTtl',
+							'totalQueued'
+							}
 
 for k in per_simulation_statistics:
 	per_simulation_values[k] = list()
@@ -132,18 +139,25 @@ for folder in directories:
 		for key in ['rxPerr', 'rxPrep', 'rxPreq', 'txPerr', 'txPrep', 'txPreq']:
 			per_run_values[Id][key] = clean_result( n.get(key) )
 
+		per_simulation_values['totalPerr'][-1] += clean_result( n.get('txPerr') )
+		per_simulation_values['totalPrep'][-1] += clean_result( n.get('txPrep') )
+		per_simulation_values['totalPreq'][-1] += clean_result( n.get('txPreq') )
+
 		n = xmlRootElement.find('PeerManagementProtocol').find('PeerManagementProtocolMac').find('Statistics')
 		for key in ['txOpen', 'txConfirm', 'txClose', 'rxOpen', 'rxConfirm', 'rxClose', 'dropped']:
 			per_run_values[Id][key] = clean_result( n.get(key) )
+		per_simulation_values['dropped'][-1] += clean_result( n.get('dropped') )
 
 		n = xmlRootElement.find('Hwmp').find('Statistics')
-		for key in ['droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr']:
+		for key in ['droppedTtl', 'totalQueued', 'totalDropped', 'initiatedPreq', 'initiatedPrep', 'initiatedPerr', 'forwardedPreq']:
 			per_run_values[Id][key] = clean_result( n.get(key) )
-
-		per_simulation_values['totalPerr'	][-1] += clean_result( n.get('initiatedPerr') )
-		per_simulation_values['totalPrep'	][-1] += clean_result( n.get('initiatedPrep') )
 		per_simulation_values['totalDropped'][-1] += clean_result( n.get('totalDropped') )
-		per_simulation_values['totalPreq'	][-1] += clean_result( n.get('initiatedPreq') )
+		per_simulation_values['forwardedPreq'][-1] += clean_result( n.get('forwardedPreq') )
+		per_simulation_values['droppedTtl'][-1] += clean_result( n.get('droppedTtl') )
+		per_simulation_values['totalQueued'][-1] += clean_result( n.get('totalQueued') )
+		aux = clean_result(n.get('initiatedProactivePreq'))
+		if aux != 0:
+			per_simulation_values['initiatedProactivePreq'] = [aux]
 
 		n = xmlRootElement.find('Interface').find('Statistics')
 		for key in ['txBytes', 'rxBytes']:
@@ -169,6 +183,8 @@ for folder in directories:
 		pl.bar(x + width/2.0, y, width=width)
 		pl.savefig('%s_graph.png' % k)
 	os.chdir(join(os.pardir, os.pardir))
+
+per_simulation_values['totalControlPkgs'] = [ per_simulation_values['totalPerr'][i] + per_simulation_values['totalPrep'][i] + per_simulation_values['totalPreq'][i] for i in range(len(directories)) ]
 
 '''
 	Savin per simulation values to statistics file

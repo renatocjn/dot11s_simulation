@@ -52,7 +52,6 @@ if not isfile(mainScriptPath):
 directories = dict()
 failed_runs = list()
 for val in parameterValues:
-	print 'Running simulation %s with parameter %s equal to %s' % (simulation, parameter, val)
 	curr_param = '--%s=%s' % (parameter, val)
 	call_list = [ mainScriptPath ] + force + [ simulation, curr_param ] + others
 	exitCode = call( call_list )
@@ -74,7 +73,19 @@ wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay', 'throu
 for m in wantedFlowMetrics:
 	metrics[m] = dict()
 
-wantedNodeMetrics = ['totalDropped', 'totalPerr', 'totalPreq', 'totalPrep'] #these are the metrics that you want to make graphics of.
+wantedNodeMetrics = ['totalPreq',
+							'totalPrep',
+							'totalPerr',
+							'totalControlPkgs',
+							'totalDropped',
+							'connectionsDensity',
+							'mostConnected',
+							'lessConnected',
+							'forwardedPreq',
+							'initiatedProactivePreq',
+							'dropped',
+							'droppedTtl',
+							'totalQueued'] #these are the metrics that you want to make graphics of.
 for m in wantedNodeMetrics:
 	metrics[m] = dict()
 
@@ -119,5 +130,5 @@ for m in metrics.keys():
 	pl.xlabel(parameter)
 	pl.ylabel(m)
 	pl.margins(0.05, 0.05)
-	pl.errorbar(x, y, yerr=std, marker='o')
+	pl.errorbar(x, y, yerr=std, marker='o', color='black')
 	pl.savefig(plot_dir+'/%s_vs_%s.png' % (m, parameter))

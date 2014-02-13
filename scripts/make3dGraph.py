@@ -75,7 +75,6 @@ failed_runs = list()
 combinations = [ (x, y) for x in parameter1Values for y in parameter2Values ]
 directories = dict() #mapping of combination to the result directory of the run
 for parameter1val, parameter2val in combinations:
-		print 'Running simulation %s with parameter %s equal to %s and parameter %s equal to %s' % (simulation, parameter1, parameter1val, parameter2, parameter2val)
 		curr_p1 = '--%s=%s' % (parameter1, parameter1val)
 		curr_p2 = '--%s=%s' % (parameter2, parameter2val)
 
@@ -100,7 +99,19 @@ wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay', 'throu
 for m in wantedFlowMetrics:
 	results[m] = list()
 
-wantedNodeMetrics = ['totalDropped', 'totalPerr', 'totalPreq', 'totalPrep'] #these are the metrics that you want to make graphics of.
+wantedNodeMetrics = ['totalPreq',
+							'totalPrep',
+							'totalPerr',
+							'totalControlPkgs',
+							'totalDropped',
+							'connectionsDensity',
+							'mostConnected',
+							'lessConnected',
+							'forwardedPreq',
+							'initiatedProactivePreq',
+							'dropped',
+							'droppedTtl',
+							'totalQueued'] #these are the metrics that you want to make graphics of.
 for m in wantedNodeMetrics:
 	results[m] = list()
 
