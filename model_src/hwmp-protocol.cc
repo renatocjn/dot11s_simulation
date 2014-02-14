@@ -382,9 +382,9 @@ HwmpProtocol::ForwardUnicast (uint32_t  sourceIface, const Mac48Address source, 
         {
             dst_seqno = result.seqnum;
         }
-        m_stats.initiatedPreq++;
         for (HwmpProtocolMacMap::const_iterator i = m_interfaces.begin (); i != m_interfaces.end (); i++)
         {
+			m_stats.initiatedPreq++;
             i->second->RequestDestination (destination, originator_seqno, dst_seqno);
         }
     }
