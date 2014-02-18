@@ -167,3 +167,8 @@ for m in results.keys():
 	pl.legend(loc='best')
 	pl.savefig( plot_dir + '/m2d_%s_vs_%s_vs_%s.png' % (m, parameter1, parameter2) )
 	#pl.show()
+
+param_file = open(plot_dir + '/params.txt', 'w')
+param_file.write( ' '.join(argv) )
+param_file.write( '\n' )
+param_file.close()

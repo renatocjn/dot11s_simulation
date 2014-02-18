@@ -79,6 +79,8 @@ private:
 	void loadPositions();
 	void parsePositions();
 	double* splitAndCorrectType(std::string line);
+	void PopulateArpCache ();
+
 };
 
 MeshTest::MeshTest () :
@@ -151,6 +153,7 @@ int MeshTest::Run () {
 	loadPositions();
 	InstallInternetStack ();
 	InstallApplication ();
+	PopulateArpCache ();
 
 	FlowMonitorHelper fmh;
 	fmh.InstallAll();
@@ -217,22 +220,23 @@ void MeshTest::InstallInternetStack () {
 }
 
 void MeshTest::InstallApplication () {
-	double totalTransmittingTime = m_totalTime - 1.0;
+	double totalTransmittingTime = m_totalTime - 5.0;
 	m_packetInterval = ( (double) m_nFlows ) / ( (double) m_packetsPerSec ) ;
-	UdpEchoServerHelper echoServer (9);
+	UdpServerHelper echoServer (9);
 	ApplicationContainer serverApps = echoServer.Install (nodes.Get (m_serverId));
 	serverApps.Start (Seconds (m_waitTime));
 	serverApps.Stop (Seconds (totalTransmittingTime));
 
-	UdpEchoClientHelper echoClient (interfaces.GetAddress (m_serverId), 9);
+	UdpClientHelper echoClient (interfaces.GetAddress (m_serverId), 9);
 	echoClient.SetAttribute ("MaxPackets", UintegerValue ((uint32_t)((totalTransmittingTime-m_waitTime)*(1/m_packetInterval))));
-	echoClient.SetAttribute ("Interval", TimeValue (Seconds (m_packetInterval)));
+	echoClient.SetAttribute ("Interval", RandomVariableValue(ExponentialVariable(m_packetInterval)));
 	echoClient.SetAttribute ("PacketSize", UintegerValue (m_packetSize));
 
+	int start = m_seed % m_numberNodes;
 	std::set<int> clientIds;
 	do {
-		int n = (rand() + 1) % m_numberNodes;
-		clientIds.insert(n);
+		clientIds.insert(start);
+		start = (start + 2) % m_numberNodes;
 	} while (clientIds.size() < m_nFlows);
 
 	NodeContainer clients;
@@ -320,5 +324,52 @@ void MeshTest::Report () {
 		}
 		mesh.Report (*i, of);
 		of.close ();
+	}
+}
+
+void MeshTest::PopulateArpCache ()
+{
+	Ptr<ArpCache> arp = CreateObject<ArpCache> ();
+	arp->SetAliveTimeout (Seconds(3600 * 24 * 365));
+	for (NodeList::Iterator i = NodeList::Begin(); i != NodeList::End(); ++i)
+	{
+		Ptr<Ipv4L3Protocol> ip = (*i)->GetObject<Ipv4L3Protocol> ();
+		NS_ASSERT(ip !=0);
+		ObjectVectorValue interfaces;
+		ip->GetAttribute("InterfaceList", interfaces);
+
+		for(ObjectVectorValue::Iterator j = interfaces.Begin(); j != interfaces.End (); j ++)
+		{
+			//Ptr<Ipv4Interface> ipIface = (*j)->GetObject<Ipv4Interface> ();
+			Ptr<Ipv4Interface> ipIface = (j->second)->GetObject<Ipv4Interface> ();
+			NS_ASSERT(ipIface != 0);
+			Ptr<NetDevice> device = ipIface->GetDevice();
+			NS_ASSERT(device != 0);
+			Mac48Address addr = Mac48Address::ConvertFrom(device->GetAddress ());
+			for(uint32_t k = 0; k < ipIface -> GetNAddresses (); k ++)
+			{
+				Ipv4Address ipAddr = ipIface->GetAddress (k).GetLocal();
+				if(ipAddr == Ipv4Address::GetLoopback())
+					continue;
+				ArpCache::Entry * entry = arp->Add(ipAddr);
+				entry->MarkWaitReply(0);
+				entry->MarkAlive(addr);
+			}
+		}
+
+	}
+
+	for (NodeList::Iterator i = NodeList::Begin(); i != NodeList::End(); ++i)
+	{
+		Ptr<Ipv4L3Protocol> ip = (*i)->GetObject<Ipv4L3Protocol> ();
+		NS_ASSERT(ip !=0);
+		ObjectVectorValue interfaces;
+		ip->GetAttribute("InterfaceList", interfaces);
+		for(ObjectVectorValue::Iterator j = interfaces.Begin(); j != interfaces.End (); j ++)
+		{
+			//Ptr<Ipv4Interface> ipIface = (*j)->GetObject<Ipv4Interface> ();
+			Ptr<Ipv4Interface> ipIface = (j->second)->GetObject<Ipv4Interface> ();
+			ipIface->SetAttribute("ArpCache", PointerValue(arp));
+		}
 	}
 }

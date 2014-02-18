@@ -132,3 +132,8 @@ for m in metrics.keys():
 	pl.margins(0.05, 0.05)
 	pl.errorbar(x, y, yerr=std, marker='o', color='black')
 	pl.savefig(plot_dir+'/%s_vs_%s.png' % (m, parameter))
+
+param_file = open(plot_dir + '/params.txt', 'w')
+param_file.write( ' '.join(argv) )
+param_file.write( '\n' )
+param_file.close()
