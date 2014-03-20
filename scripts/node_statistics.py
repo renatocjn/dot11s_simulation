@@ -10,14 +10,16 @@ import pylab as pl
 from scipy.stats import norm
 from math import sqrt
 from utils import *
-
+from numpy import array
+from glob import glob
 if len(sys.argv) == 2 and isdir(sys.argv[1]): #minimum parameter checking
 	os.chdir(sys.argv[1])
 else:
 	print 'please pass the directory with the results as the first parameter'
 	sys.exit(1)
 
-_, directories, _ = os.walk(os.curdir).next() #get diretories of the current folder
+#_, directories, _ = os.walk(os.curdir).next() #get diretories of the current folder
+directories = glob('test-*')
 numerical_sort(directories)
 
 density, less_connected, most_connected = list(), list(), list()
@@ -185,7 +187,6 @@ for folder in directories:
 	os.chdir(join(os.pardir, os.pardir))
 
 per_simulation_values['totalControlPkgs'] = [ per_simulation_values['totalPerr'][i] + per_simulation_values['totalPrep'][i] + per_simulation_values['totalPreq'][i] for i in range(len(directories)) ]
-
 '''
 	Savin per simulation values to statistics file
 '''

@@ -26,7 +26,6 @@
 #include <cstdio>
 
 #define EOL std::endl //EOL = End Of Line
-#define MAX_RETRIES 10
 #define VALID_SIMULATION 0
 #define INVALID_SIMULATION 1
 
@@ -61,6 +60,7 @@ private:
 	unsigned m_nFlows;
 	double m_totalTime;
 	std::string m_positionsFilePath;
+	std::string m_topologyOutputFilePath;
 
 	Ptr<FlowMonitor> m_flowMonitor;
 	NodeContainer nodes;
@@ -76,7 +76,7 @@ private:
 	void Report ();
 	bool checkForConnections(); // calls external script to check latest run for the minimum number of connections
 	void setupRandomMobility();
-	bool generateValidPositions(unsigned id);
+	bool generateValidPositions();
 	void loadPositions();
 };
 
@@ -129,7 +129,7 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	cmd.AddValue ("number-of-nodes",  "Number of nodes in the simulation. [50]", m_numberNodes);
 
 	cmd.AddValue ("number-of-topologies", "Number of topologies to be generated [3]", m_numberOfTopologiesToBeGenerated);
-
+	cmd.AddValue ("out-file", "Path for the output file describing the topology", m_topologyOutputFilePath);
 
 	cmd.Parse (argc, argv);
 
@@ -139,29 +139,18 @@ void MeshTest::Configure (int argc, char *argv[]) {
 		m_seed = rand();
 	}
 	SeedManager::SetSeed(m_seed);
+
+	FILE* fp = std::fopen("seed.txt", "w");
+	std::fprintf(fp, "%d\n", m_seed);
+	std::fclose(fp);
 }
 
 int MeshTest::Run () {
-	unsigned retries = 0;
-	unsigned validTopologies = 0;
-	while( validTopologies < m_numberOfTopologiesToBeGenerated && retries < MAX_RETRIES){
-		bool valid = generateValidPositions(validTopologies);
-		if ( valid )
-			validTopologies++;
-		else
-			retries++;
-	}
-
-	if( validTopologies == m_numberOfTopologiesToBeGenerated ) {
-		std::cout << "The correct number of topologies were created!" << EOL;
-		return 0;
-	} else if ( retries == MAX_RETRIES ) {
-		std::cout << "Too many retries to create topologies!" << EOL;
-		return 1;
-	} else {
-		std::cout << "I Have no idea of what happened!" << EOL;
-		return 2;
-	}
+	bool valid = generateValidPositions();
+	if ( valid )
+		return VALID_SIMULATION;
+	else
+		return INVALID_SIMULATION;
 
 }
 
@@ -239,7 +228,7 @@ void MeshTest::setupRandomMobility() {
 	mobility.Install (nodes);
 }
 
-bool MeshTest::generateValidPositions(unsigned id) {
+bool MeshTest::generateValidPositions() {
 	CreateNodes ();
 	setupRandomMobility();
 	InstallInternetStack ();
@@ -250,16 +239,14 @@ bool MeshTest::generateValidPositions(unsigned id) {
 	Simulator::Destroy ();
 
 	bool itWasValid = checkForConnections();
-	for( unsigned i=0; i<m_numberNodes; i++) {
-		std::ostringstream os;
-		os << "mp-report-"<< i << ".xml";
-		std::remove(os.str().c_str());
-	}
+// 	for( unsigned i=0; i<m_numberNodes; i++) {
+// 		std::ostringstream os;
+// 		os << "mp-report-"<< i << ".xml";
+// 		std::remove(os.str().c_str());
+// 	}
 
 	if ( itWasValid ) {
-		std::ostringstream positions_filename;
-		positions_filename << "topology_" << id << ".txt";
-		FILE* fp = std::fopen(positions_filename.str().c_str(), "w");
+		FILE* fp = std::fopen(m_topologyOutputFilePath.c_str(), "w");
 		for (uint32_t i=0; i<nodes.GetN(); i++) {
 			ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
 			m_positions.push_back(p);
@@ -273,7 +260,7 @@ bool MeshTest::generateValidPositions(unsigned id) {
 bool MeshTest::checkForConnections() {
 	/// Not the nicest way but couldn't find a better one ~RenatoCJN
 
-	if (system( "../../check.py" ) == 0)
+	if (system( "../../../check.py" ) == 0)
 		return true;
 	else
 		return false;

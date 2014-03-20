@@ -119,7 +119,7 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	cmd.AddValue ("start",  "Maximum random start delay, seconds. [0.1 s]", m_randomStart);
 	cmd.AddValue ("time",  "Simulation time, seconds [100 s]", m_totalTime);
 
-	cmd.AddValue ("packets-per-sec",  "Number of packets to be send per secon [10]", m_packetsPerSec);
+	cmd.AddValue ("packets-per-sec",  "Number of packets to be send per sec [10]", m_packetsPerSec);
 	cmd.AddValue ("packet-size",  "Size of packets in UDP ping", m_packetSize);
 	cmd.AddValue ("interfaces", "Number of radio interfaces used by each mesh point. [1]", m_nIfaces);
 	cmd.AddValue ("channels",   "Use different frequency channels for different interfaces. [1]", m_chan);
@@ -149,10 +149,15 @@ void MeshTest::Configure (int argc, char *argv[]) {
 }
 
 int MeshTest::Run () {
+// 	std::cout << "CreateNodes" << EOL;
 	CreateNodes ();
+// 	std::cout << "loadPositions" << EOL;
 	loadPositions();
+// 	std::cout << "InstallInternetStack" << EOL;
 	InstallInternetStack ();
+// 	std::cout << "InstallApplication" << EOL;
 	InstallApplication ();
+// 	std::cout << "PopulateArpCache" << EOL;
 	PopulateArpCache ();
 
 	FlowMonitorHelper fmh;
@@ -161,6 +166,7 @@ int MeshTest::Run () {
 
 	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
 	Simulator::Stop (Seconds (m_totalTime));
+// 	std::cout << "Run" << EOL;
 	Simulator::Run ();
 	Simulator::Destroy ();
 
@@ -171,6 +177,7 @@ int MeshTest::Run () {
 	std::fprintf(fp, "%d\n", m_seed);
 	std::fclose(fp);
 
+	//std::cout << "Ended!!" << EOL;
 	return 0;
 }
 
@@ -234,10 +241,14 @@ void MeshTest::InstallApplication () {
 
 	int start = m_seed % m_numberNodes;
 	std::set<int> clientIds;
+
+// 	std::cout << "CLient Loop" << EOL;
 	do {
-		clientIds.insert(start);
-		start = (start + 2) % m_numberNodes;
+		int tmp = (start + rand()) % m_numberNodes;
+		clientIds.insert(tmp);
+// 		std::cout << start << EOL;
 	} while (clientIds.size() < m_nFlows);
+// 	std::cout << "CLient Loop END" << EOL;
 
 	NodeContainer clients;
 	FILE* fp = std::fopen("clients.txt", "w");

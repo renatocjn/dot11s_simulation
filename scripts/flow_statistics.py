@@ -13,7 +13,8 @@ else:
 	print 'please pass the directory with the results as the first parameter'
 	sys.exit(1)
 
-_, directories, _ = os.walk(os.curdir).next()
+#_, directories, _ = os.walk(os.curdir).next()
+directories = glob('test-*')
 numerical_sort(directories)
 
 txBytes = list()
@@ -38,6 +39,17 @@ for d in directories:
 	os.chdir(d)
 	xmlString = open('FlowMonitorResults.xml', 'r').read()
 	xmlRoot = etree.XML(xmlString)
+	#report_files = glob('MeshHelperXmls/mp-report-*.xml')
+	#racc = long(0)
+	#tacc = long(0)
+	#for report in report_files:
+		#MeshPointDevice = etree.XML(open(report).read())
+		#stats = MeshPointDevice.find('Statistics')
+		#tacc += clean_result(stats.get('txUnicastDataBytes'))
+		#racc += clean_result(stats.get('rxUnicastDataBytes'))
+	#rxBytes.append(racc)
+	#txBytes.append(tacc)
+
 	FlowStats = xmlRoot.find('FlowStats')
 	all_flows = FlowStats.findall('Flow')
 	for flow in all_flows: # get flow simulation values
@@ -56,7 +68,7 @@ for d in directories:
 		timesForwarded.append(clean_result(flow.get('timesForwarded')))
 	os.chdir(os.pardir)
 
-deliveryRate = map( lambda x: x[0]/x[1], zip(rxPackets, txPackets))
+deliveryRate = map( lambda x: x[0]/x[1], zip(rxBytes, txBytes))
 delay = map( lambda x: (x[0]-x[1])*10**(-9), zip(timeLastRxPacket, timeFirstTxPacket) )
 throughput = map( lambda x: x[0]/x[1], zip(rxPackets, delay) )
 
