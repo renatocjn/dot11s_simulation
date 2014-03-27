@@ -56,6 +56,8 @@ seeds_set = set()
 while len(seeds_set) < 10*params.num_runs + MAX_TOPOLOGIES:
 	seeds_set.add( randint(0, MAX_SEED) )
 seeds_list = list(seeds_set)
+seeds_list = range(MAX_SEED)
+shuffle(seeds_list)
 
 topology_making_seeds = m.Queue()
 for seed in seeds_list[-MAX_TOPOLOGIES:]:
@@ -70,11 +72,11 @@ def gen_validTopology(not_used_param=None):
 	global outDir, params, topology_making_seeds, MAX_TOPOLOGIES, topologies, topologies_insertion_lock, topoCounter
 	seed = None
 	with topologies_insertion_lock and topoCounter.get_lock():
-		if topoCounter.value > MAX_TOPOLOGIES:
+		if topoCounter.value >= MAX_TOPOLOGIES:
 			return False
 		topoId = topoCounter.value + 1
 		topoCounter.value += 1
-		seed = topology_making_seeds.get_nowait()
+		seed = topology_making_seeds.get()
 
 	if not seed:
 		return False
@@ -108,7 +110,7 @@ def runTest(i):
 	t1 = None
 	t2 = None
 	while not OK:
-		with seedLock: seed = seeds.get_nowait()
+		with seedLock: seed = seeds.get()
 		print '[Thread %2d]'%i, 'Got seed', seed
 
 		if topo_file is None or retries > 2:
@@ -149,7 +151,7 @@ def runTest(i):
 		print 'Finished run', doneCounter.value, 'out of', params.num_runs, 'runs / Duration: %d days, %d hours, %d minutes and %d seconds' % (rd.days, rd.hours, rd.minutes, rd.seconds)
 		doneCounter.value += 1
 
-runners = Pool()
+runners = Pool(3)
 
 if isdir(outDir) and params.force:
 	rmtree(outDir)
@@ -182,13 +184,13 @@ try:
 	call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
 	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
 
-	total_dt1 = datetime.datetime.fromtimestamp(t1)
-	total_dt2 = datetime.datetime.fromtimestamp(t2)
-	total_rd = dateutil.relativedelta.relativedelta (dt2, dt1)
+	total_dt1 = datetime.datetime.fromtimestamp(total_t1)
+	total_dt2 = datetime.datetime.fromtimestamp(total_t2)
+	total_rd = dateutil.relativedelta.relativedelta (total_dt2, total_dt1)
 	print 'Experiment completed successfully / Total duration: %d days, %d hours, %d minutes and %d seconds' % (total_rd.days, total_rd.hours, total_rd.minutes, total_rd.seconds)
 except BaseException as e:
-	rmtree(outDir)
 	runners.terminate()
 	print "Something went wrong with the experiment..."
 	print "Message:", e.message
+	#rmtree(outDir)
 	exit(1)
