@@ -82,7 +82,7 @@ for parameter1val, parameter2val in combinations:
 		call_list = [ mainScriptPath ] + force + [ simulation, curr_p1, curr_p2 ] + others
 		exitCode = call( call_list )
 		if exitCode is not 0:
-			failed_runs.add( call_list )
+			failed_runs.append( call_list )
 		possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_p1, curr_p2]+others ]) ]
 		directories[ (parameter1val, parameter2val) ] = min(possibleDirs, key=lambda x: len(x))
 if failed_runs:

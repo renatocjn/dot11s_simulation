@@ -2,7 +2,6 @@ from os.path import isdir, join
 from lxml import etree
 from glob import glob
 import os, sys, numpy, random, networkx as nx
-from scikits.bootstrap import ci
 from shutil import rmtree
 import pylab as pl
 from scipy.stats import norm

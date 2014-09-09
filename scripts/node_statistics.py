@@ -4,7 +4,6 @@ from os.path import isdir, join
 from lxml import etree
 from glob import glob
 import os, sys, numpy, random, networkx as nx
-from scikits.bootstrap import ci
 from shutil import rmtree
 import pylab as pl
 from scipy.stats import norm
@@ -88,6 +87,7 @@ for run_dir in directories:
 	if not isdir( join(run_dir, 'graphics') ):
 		os.mkdir(join(run_dir, 'graphics'))
 	nx.write_dot(link_graph, join(run_dir, 'graphics', 'peer_link_graph.dot'))
+
 '''
 	recovering values from the nodes xml files
 '''
@@ -168,22 +168,22 @@ for folder in directories:
 	'''
 		Graphics for each run
 	'''
-	os.chdir(os.pardir)
-	width = 0.5
-	x = numpy.arange(node_number)
-	labels = [ 'node_' + str(int(i)) for i in x ]
-	if not isdir('graphics'):
-		os.mkdir('graphics')
-	os.chdir('graphics')
-	for k in per_run_statistics:
-		pl.clf()
-		y = [ per_run_values[i][k] for i in range(node_number) ]
-		pl.xlim(0, x[-1]+width*2)
-		pl.ylim(ymin=0, ymax=(max(y)+0.1))
-		pl.xticks(x + width, labels)
-		pl.title(k)
-		pl.bar(x + width/2.0, y, width=width)
-		pl.savefig('%s_graph.png' % k)
+	#os.chdir(os.pardir)
+	#width = 0.5
+	#x = numpy.arange(node_number)
+	#labels = [ 'node_' + str(int(i)) for i in x ]
+	#if not isdir('graphics'):
+#		os.mkdir('graphics')
+	#os.chdir('graphics')
+	#for k in per_run_statistics:
+	#	pl.clf()
+	#	y = [ per_run_values[i][k] for i in range(node_number) ]
+	#	pl.xlim(0, x[-1]+width*2)
+	#	pl.ylim(ymin=0, ymax=(max(y)+0.1))
+	#	pl.xticks(x + width, labels)
+	#	pl.title(k)
+	#	pl.bar(x + width/2.0, y, width=width)
+	#	pl.savefig('%s_graph.png' % k)
 	os.chdir(join(os.pardir, os.pardir))
 
 per_simulation_values['totalControlPkgs'] = [ per_simulation_values['totalPerr'][i] + per_simulation_values['totalPrep'][i] + per_simulation_values['totalPreq'][i] for i in range(len(directories)) ]
