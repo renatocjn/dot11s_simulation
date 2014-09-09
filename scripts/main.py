@@ -14,8 +14,8 @@ from utils import check_run
 import datetime
 import dateutil.relativedelta
 
-print '**** MAIN.PY EXIT(0) antes de tudo****'
-exit(0)
+#print '**** MAIN.PY EXIT(0) antes de tudo****'
+#exit(0)
 
 MAX_TOPOLOGIES = 10
 DEFAULT_NUMBER_OF_RUNS = 30
@@ -91,7 +91,7 @@ def gen_validTopology(not_used_param=None):
 	ns3_simulation_simulation_and_params = [params.positioning, '--seed=%d'%seed, '--out-file=../'+topo_file ] + params.sim_params
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 	call_list = ['./waf', '--cwd=%s' % topoDir, '--run', ns3_simulation_simulation_and_params]
-	outCode = call(call_list, stdout=PIPE, stderr=PIPE)
+	outCode = call(call_list)
 
 	if outCode is VALID_RUN:
 		with topologies_insertion_lock:
@@ -131,7 +131,7 @@ def runTest(i):
 		ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 		call_list = ['./waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
 		t1 = time()
-		call(call_list, stderr=PIPE)
+		call(call_list)
 		t2 = time()
 
 		OK = check_run(testDir)
@@ -154,7 +154,7 @@ def runTest(i):
 		print 'Finished run', doneCounter.value, 'out of', params.num_runs, 'runs / Duration: %d days, %d hours, %d minutes and %d seconds' % (rd.days, rd.hours, rd.minutes, rd.seconds)
 		doneCounter.value += 1
 
-runners = Pool(3)
+runners = Pool(1)
 
 if isdir(outDir) and params.force:
 	rmtree(outDir)
@@ -174,6 +174,7 @@ try:
 	print 'Generating initial topologies'
 	aux = runners.map(gen_validTopology, range(5))
 
+	print aux
 	if not all(aux):
 		raise Exception("Couldn't create initial topologies!")
 	Ids = range(params.num_runs)

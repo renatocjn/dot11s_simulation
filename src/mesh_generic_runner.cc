@@ -149,15 +149,15 @@ void MeshTest::Configure (int argc, char *argv[]) {
 }
 
 int MeshTest::Run () {
-// 	std::cout << "CreateNodes" << EOL;
+ 	//std::cout << "CreateNodes" << EOL;
 	CreateNodes ();
-// 	std::cout << "loadPositions" << EOL;
+ 	//std::cout << "loadPositions" << EOL;
 	loadPositions();
-// 	std::cout << "InstallInternetStack" << EOL;
+ 	//std::cout << "InstallInternetStack" << EOL;
 	InstallInternetStack ();
-// 	std::cout << "InstallApplication" << EOL;
+ 	//std::cout << "InstallApplication" << EOL;
 	InstallApplication ();
-// 	std::cout << "PopulateArpCache" << EOL;
+ 	//std::cout << "PopulateArpCache" << EOL;
 	PopulateArpCache ();
 
 	FlowMonitorHelper fmh;
@@ -166,7 +166,7 @@ int MeshTest::Run () {
 
 	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
 	Simulator::Stop (Seconds (m_totalTime));
-// 	std::cout << "Run" << EOL;
+ 	//std::cout << "Run" << EOL;
 	Simulator::Run ();
 	Simulator::Destroy ();
 
@@ -182,6 +182,8 @@ int MeshTest::Run () {
 }
 
 void MeshTest::CreateNodes () {
+	m_serverId = m_seed % m_numberNodes;
+	
 	parsePositions();
 	m_numberNodes = m_positions.size();
 
