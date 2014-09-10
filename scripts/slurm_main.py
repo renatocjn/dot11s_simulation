@@ -91,7 +91,7 @@ def gen_validTopology(not_used_param=None):
 	ns3_simulation_simulation_and_params = [params.positioning, '--seed=%d'%seed, '--out-file=../'+topo_file ] + params.sim_params
 	ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 	call_list = ['srun', '-p', 'long', './waf', '--cwd=%s' % topoDir, '--run', ns3_simulation_simulation_and_params]
-	outCode = call(call_list)
+	outCode = call(call_list, stderr=PIPE, stdout=PIPE)
 
 	if outCode is VALID_RUN:
 		with topologies_insertion_lock:
@@ -131,7 +131,7 @@ def runTest(i):
 		ns3_simulation_simulation_and_params = ' '.join(ns3_simulation_simulation_and_params)
 		call_list = ['srun', './waf', '--cwd=%s'%testDir, '--run', ns3_simulation_simulation_and_params]
 		t1 = time()
-		call(call_list)
+		call(call_list, stderr=PIPE, stdout=PIPE)
 		t2 = time()
 
 		OK = check_run(testDir)
@@ -185,8 +185,8 @@ try:
 	total_t2 = time()
 
 	#print 'Running analisys'
-	#call(['./dot11s_simulation/scripts/node_statistics.py', outDir])
-	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir])
+	#call(['./dot11s_simulation/scripts/node_statistics.py', outDir], stderr=PIPE, stdout=PIPE)
+	call(['./dot11s_simulation/scripts/flow_statistics.py', outDir], stderr=PIPE, stdout=PIPE)
 
 	total_dt1 = datetime.datetime.fromtimestamp(total_t1)
 	total_dt2 = datetime.datetime.fromtimestamp(total_t2)
