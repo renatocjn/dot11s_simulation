@@ -94,7 +94,7 @@ for run_dir in directories:
 node_number = len(glob(join(directories[0], 'MeshHelperXmls', '*')))
 per_run_values = [ dict() for i in range(node_number) ]
 
-per_run_statistics = {'rxOpen', 'txOpen',
+per_run_statistics = ['rxOpen', 'txOpen',
 					  'rxBytes', 'txBytes',
 					  'rxConfirm', 'txConfirm',
 					  'rxClose', 'txClose',
@@ -107,10 +107,10 @@ per_run_statistics = {'rxOpen', 'txOpen',
 					  'droppedTtl',
 					  'totalQueued',
 					  'totalDropped'
-					  }
+					  ]
 
 per_simulation_values = dict()
-per_simulation_statistics = {'totalPreq',
+per_simulation_statistics = ['totalPreq',
 							'totalPrep',
 							'totalPerr',
 							'totalControlPkgs',
@@ -123,7 +123,7 @@ per_simulation_statistics = {'totalPreq',
 							'dropped',
 							'droppedTtl',
 							'totalQueued'
-							}
+							]
 
 for k in per_simulation_statistics:
 	per_simulation_values[k] = list()
