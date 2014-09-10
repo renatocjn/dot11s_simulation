@@ -116,7 +116,7 @@ def runTest(i):
 		with seedLock: seed = seeds.get()
 		print '[Thread %2d]'%i, 'Got seed', seed
 
-		if topo_file is None or retries > 2:
+		if topo_file is None or retries > MAX_RETRIES:
 			with topologies_access_lock:
 				if topologies.empty():
 					print '[Thread %2d]'%i, 'Making new topology'
