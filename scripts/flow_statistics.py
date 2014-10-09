@@ -68,7 +68,10 @@ for d in directories:
 	os.chdir(os.pardir)
 
 deliveryRate = map( lambda x: x[0]/x[1], zip(rxBytes, txBytes))
-throughput = map( lambda x: x[0]*10**9/(x[1]-x[2]), zip(rxBytes, timeLastRxPacket, timeFirstTxPacket) )
+delayMean = map( lambda x: x[0]/x[1], zip(delaySum, rxPackets))
+
+### 10**3 / 8 transforms Bytes/nanosec to Mbits/sec
+throughput = map( lambda x: x[0] * (10**3/8) / (x[1]-x[2]), zip(rxBytes, timeLastRxPacket, timeFirstTxPacket) )
 
 stats = {}
 stats['txBytes'] = statistics(txBytes)
@@ -81,6 +84,7 @@ stats['timeLastTxPacket'] = statistics(timeLastTxPacket)
 stats['timeLastRxPacket'] = statistics(timeLastRxPacket)
 stats['deliveryRate'] = statistics(deliveryRate)
 stats['delaySum'] = statistics(delaySum)
+stats['delayMean'] = statistics(delayMean)
 stats['jitterSum'] = statistics(jitterSum)
 stats['lastDelay'] = statistics(lastDelay)
 stats['lostPackets'] = statistics(lostPackets)

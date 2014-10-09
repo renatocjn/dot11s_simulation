@@ -95,7 +95,7 @@ if failed_runs:
 '''
 results = dict()
 
-wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delay', 'throughput'] #these are the metrics that you want to make graphics of.
+wantedFlowMetrics = ['deliveryRate', 'lostPackets', 'jitterSum', 'delaySum', 'delayMean', 'throughput'] #these are the metrics that you want to make graphics of.
 for m in wantedFlowMetrics:
 	results[m] = list()
 

@@ -9,7 +9,7 @@ def statistics(lvals):
 	vals = vals
 	mean = vals.mean()
 	#if lvals.count(vals[0]) == len(vals): return mean, 0
-	tmp = 1.96 * vals.std() / sqrt(vals.size())
+	tmp = 1.96 * vals.std() / sqrt(vals.size)
 	return mean, tmp
 
 clean_result = lambda x: float( filter( lambda x: x.isdigit() or x=='.', x ) )
