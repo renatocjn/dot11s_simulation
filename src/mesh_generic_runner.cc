@@ -110,7 +110,9 @@ int main (int argc, char *argv[]) {
 void MeshTest::Configure (int argc, char *argv[]) {
 	srand(time(NULL));
 	CommandLine cmd;
-
+    
+    int m_step;
+    
 	cmd.AddValue ("x-size",  "Size of the x axis of the rectangle [100]", m_xsize);
 	cmd.AddValue ("y-size",  "Size of the y axis of the rectangle [100]", m_ysize);
 
@@ -130,7 +132,7 @@ void MeshTest::Configure (int argc, char *argv[]) {
 	cmd.AddValue ("pcap",   "Enable PCAP traces on interfaces. [0]", m_pcap);
 
 	cmd.AddValue ("seed", "Seed for the generation of the simulation, must be positive, if not set it will be a random number generated from time", m_seed);
-
+	cmd.AddValue ("step", "Distance between nodes in the grid", m_step);
 
 	cmd.AddValue ("radius", "Radius of the disk that the mesh points are randomly located. [300 m]", m_radius);
 	cmd.AddValue ("number-of-nodes",  "Number of nodes in the simulation. [50]", m_numberNodes);

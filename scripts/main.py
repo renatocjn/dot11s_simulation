@@ -17,7 +17,7 @@ import dateutil.relativedelta
 #print '**** MAIN.PY EXIT(0) antes de tudo****'
 #exit(0)
 
-MAX_TOPOLOGIES = 10
+MAX_TOPOLOGIES = 20
 DEFAULT_NUMBER_OF_RUNS = 30
 MAX_SEED = 100000
 MAX_RETRIES = 1
