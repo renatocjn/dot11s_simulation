@@ -212,23 +212,14 @@ void MeshTest::setupRandomMobility() {
 
 	Vector rootPosition(0.0, 0.0, 0.0);
 	m_positions.push_back(rootPosition);
-
-	Ptr<UniformRandomVariable> rhoGenerator = CreateObject<UniformRandomVariable>();
-	rhoGenerator->SetAttribute("Min", DoubleValue(0.0));
-	rhoGenerator->SetAttribute("Max", DoubleValue(m_radius));
-
-	Ptr<UniformRandomVariable> angleGenerator = CreateObject<UniformRandomVariable>();
-	angleGenerator->SetAttribute("Min", DoubleValue(0.0));
-	angleGenerator->SetAttribute("Max", DoubleValue(360.0));
+	
+	Ptr<UniformDiscPositionAllocator> allocator = CreateObject<UniformDiscPositionAllocator>();
+	allocator->SetRho(m_radius);
+	allocator->SetX(0.0);
+	allocator->SetY(0.0);
 
 	for (unsigned i=0; i<m_numberNodes-1; i++) {
-		double newRho = rhoGenerator->GetValue();
-		double newAngle = angleGenerator->GetValue();
-
-		double newX = newRho * std::cos(newAngle);
-		double newY = newRho * std::sin(newAngle);
-
-		m_positions.push_back(Vector(newX, newY, 0.0));
+		m_positions.push_back(allocator->GetNext());
 	}
 
 	loadPositions();
