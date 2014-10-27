@@ -128,8 +128,8 @@ void MeshTest::Configure (int argc, char *argv[]) {
 
 
 	cmd.AddValue ("step", "Distance between nodes in the grid", m_step);
-	cmd.AddValue ("xsize", "number of nodes for each line of the grid.", m_xsize);
-	cmd.AddValue ("ysize", "number of nodes for each column of the grid.", m_ysize);
+	cmd.AddValue ("x-size", "number of nodes for each line of the grid.", m_xsize);
+	cmd.AddValue ("y-size", "number of nodes for each column of the grid.", m_ysize);
 
 	cmd.AddValue ("number-of-topologies", "Number of topologies to be generated [3]", m_numberOfTopologiesToBeGenerated);
 	cmd.AddValue ("out-file", "Path for the output file describing the topology", m_topologyOutputFilePath);
