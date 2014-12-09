@@ -14,6 +14,7 @@
 #include "ns3/random-variable.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/hwmp-protocol.h"
+#include "ns3/netanim-module.h"
 
 #include <ctime>
 #include <cstdlib>
@@ -165,15 +166,22 @@ int MeshTest::Run () {
 	FlowMonitorHelper fmh;
 	fmh.InstallAll();
 	m_flowMonitor = fmh.GetMonitor();
-
+ 	
 	Simulator::Schedule (Seconds (m_totalTime), &MeshTest::Report, this);
 	Simulator::Stop (Seconds (m_totalTime));
  	//std::cout << "Run" << EOL;
+ 	
+ 	FILE* fp2 = std::fopen("tmp", "w");
+ 	for (uint32_t i=0; i<nodes.GetN(); i++) {
+		ns3::Vector p = nodes.Get(i)->GetObject<MobilityModel>()->GetPosition();
+		fprintf(fp2, "%d|%f|%f\n", i, p.x, p.y);
+	}
+ 	
 	Simulator::Run ();
 	Simulator::Destroy ();
 
 	m_flowMonitor->CheckForLostPackets();
-	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", true, true);
+	m_flowMonitor->SerializeToXmlFile("FlowMonitorResults.xml", false, false);
 
 	FILE* fp = std::fopen("seed.txt", "w");
 	std::fprintf(fp, "%d\n", m_seed);
@@ -184,7 +192,7 @@ int MeshTest::Run () {
 }
 
 void MeshTest::CreateNodes () {
-	m_serverId = m_seed % m_numberNodes;
+	//m_serverId = m_seed % m_numberNodes;
 	
 	parsePositions();
 	m_numberNodes = m_positions.size();
