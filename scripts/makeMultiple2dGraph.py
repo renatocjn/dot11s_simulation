@@ -84,12 +84,13 @@ for parameter1val, parameter2val in combinations:
 		if exitCode is not 0:
 			failed_runs.append( call_list )
 		possibleDirs = [ directory for directory in glob('results/*') if all([ p in directory for p in [curr_p1, curr_p2]+others ]) ]
+		#print possibleDirs
 		directories[ (parameter1val, parameter2val) ] = min(possibleDirs, key=lambda x: len(x))
 if failed_runs:
 	print 'The following simulations failed:'
 	for failed_run in failed_runs: print failed_run
 	exit(1)
-
+exit(1)
 '''
 	Preparing data structure of the results
 '''
