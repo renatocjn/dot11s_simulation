@@ -193,7 +193,7 @@ void MeshTest::InstallInternetStack () {
 	InternetStackHelper internetStack;
 	internetStack.Install (nodes);
 	Ipv4AddressHelper address;
-	address.SetBase ("10.1.1.0", "255.255.255.0");
+	address.SetBase ("10.0.0.0", "255.0.0.0");
 	interfaces = address.Assign (meshDevices);
 }
 
